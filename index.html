@@ -38,11 +38,14 @@
     .grad-primary{ background: linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%) }
     .safe-top{ padding-top: env(safe-area-inset-top) }
     .safe-bottom{ padding-bottom: env(safe-area-inset-bottom) }
-    .sheet{ position: fixed; inset-inline: 0; bottom: 56px; z-index: 30; display:none }
+    .sheet{ position: fixed; inset-inline: 0; bottom: 56px; z-index: 50; display:none }
     .sheet-card{ border-top-left-radius: 18px; border-top-right-radius: 18px }
     .drag-handle{ width: 40px; height: 4px; background:#cbd5e1; border-radius: 999px; margin: 8px auto }
     .tabbar{ height:56px }
     .pill { padding:2px 8px; border-radius:999px; font-size:11px; }
+    .modal{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; z-index:60}
+    .modal-card{max-height:85dvh; overflow:auto}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;clip:rect(0,0,0,0);overflow:hidden;white-space:nowrap}
   </style>
 </head>
 <body class="text-waseela-ink">
@@ -52,10 +55,8 @@
     <header class="px-4 py-2 bg-white shadow-sm sticky top-0 z-40">
       <div class="max-w-screen-md mx-auto flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl grad-primary shadow-soft">
-            <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor" aria-hidden="true">
-              <path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Zm6-4.5V6.75c0-.138.112-.25.25-.25h2.5c.138 0 .25.112.25.25V9H9Z"/>
-            </svg>
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl grad-primary shadow-soft" aria-hidden="true">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor"><path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Zm6-4.5V6.75c0-.138.112-.25.25-.25h2.5c.138 0 .25.112.25.25V9H9Z"/></svg>
           </span>
           <div>
             <div class="text-lg font-extrabold tracking-tight text-waseela-primary">وسيلة</div>
@@ -66,14 +67,15 @@
         <div class="flex items-center gap-2">
           <button id="modePickup" class="pill bg-blue-50 text-blue-700 border border-blue-200">تحديد التحميل</button>
           <button id="modeDrop"   class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">تحديد التفريغ</button>
+          <button id="installBtn" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft hidden">تثبيت التطبيق</button>
           <button id="ctaTop" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft">طلب حوض</button>
         </div>
       </div>
     </header>
 
     <!-- Main -->
-    <main class="px-4 pt-3 pb-4 max-w-screen-md mx-auto">
-      <!-- حالة بسيطة -->
+    <main class="px-4 pt-3 pb-4 max-w-screen-md mx-auto" id="homePage">
+      <!-- حالة سريعة -->
       <section class="bg-white rounded-2xl shadow-soft p-3 mb-3 text-sm flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="pill bg-gray-100 text-gray-600">المسافة: <b id="distanceKm">—</b> كم</span>
@@ -84,12 +86,118 @@
 
       <!-- خريطة -->
       <section class="bg-white rounded-2xl shadow-soft p-2">
-        <div id="map" class="w-full"></div>
+        <div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div>
         <div class="px-2 py-2 text-[12px] text-gray-500">
           اختر الوضع بالأزرار العلوية ثم انقر على الخريطة لتحديد <b>التحميل</b> أو <b>التفريغ</b>.
         </div>
       </section>
     </main>
+
+    <!-- صفحة تسجيل السائق/المركبة -->
+    <section id="driverPage" class="px-4 pt-4 pb-24 max-w-screen-md mx-auto hidden">
+      <div class="bg-white rounded-2xl shadow-soft p-4">
+        <h2 class="text-lg font-extrabold mb-2">تسجيل سائق ومركبة (أصحاب الونيتات)</h2>
+        <p class="text-sm text-gray-600 mb-4">أكمل الحقول التالية بدقة. البيانات تحفظ محليًا على جهازك.</p>
+
+        <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm">
+          <div class="col-span-2 font-semibold text-waseela-primary">بيانات السائق</div>
+
+          <div>
+            <label class="block text-gray-700">الاسم الكامل</label>
+            <input name="driverName" required class="mt-1 w-full border rounded-xl p-3" placeholder="الاسم الثلاثي" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">رقم الجوال</label>
+            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">رقم الهوية/الإقامة</label>
+            <input name="driverId" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 10 أرقام" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">المنطقة</label>
+            <select name="region" required class="mt-1 w-full border rounded-xl p-3">
+              <option value="">اختر المنطقة</option>
+              <option>الرياض</option><option>مكة المكرمة</option><option>المدينة المنورة</option>
+              <option>القصيم</option><option>الشرقية</option><option>عسير</option>
+              <option>تبوك</option><option>حائل</option><option>الحدود الشمالية</option>
+              <option>جازان</option><option>نجران</option><option>الباحة</option>
+              <option>الجوف</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-gray-700">رقم رخصة القيادة</label>
+            <input name="licenseNo" required class="mt-1 w-full border rounded-xl p-3" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">تاريخ انتهاء الرخصة</label>
+            <input name="licenseExpiry" type="date" required class="mt-1 w-full border rounded-xl p-3" />
+          </div>
+
+          <div class="col-span-2 font-semibold text-waseela-primary mt-2">بيانات المركبة (الونيت)</div>
+
+          <div>
+            <label class="block text-gray-700">رقم اللوحة</label>
+            <input name="plate" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: أ ب ج 1234" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">الموديل</label>
+            <input name="model" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 2021" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">النوع</label>
+            <select name="type" required class="mt-1 w-full border rounded-xl p-3">
+              <option value="">اختر النوع</option>
+              <option>حوض عادي</option>
+              <option>حوض دبل</option>
+              <option>ثلاجة (مبرد)</option>
+              <option>سقف عالي/غطاء</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-gray-700">الحمولة القصوى (كجم)</label>
+            <input name="capacityKg" type="number" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 1500" />
+          </div>
+
+          <div class="col-span-2 font-semibold text-waseela-primary mt-2">مستندات (اختياري — تحفظ محليًا)</div>
+
+          <div>
+            <label class="block text-gray-700">صورة رخصة القيادة</label>
+            <input name="licenseImg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
+          </div>
+
+          <div>
+            <label class="block text-gray-700">استمارة المركبة</label>
+            <input name="vehicleReg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
+          </div>
+
+          <div class="col-span-2">
+            <label class="block text-gray-700">ملاحظات</label>
+            <textarea name="notes" rows="2" class="mt-1 w-full border rounded-xl p-3" placeholder="تفاصيل إضافية…"></textarea>
+          </div>
+
+          <div class="col-span-2 flex gap-3 mt-1">
+            <button class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft" type="submit">حفظ التسجيل</button>
+            <button id="clearDriver" class="flex-1 px-6 py-3 rounded-xl border" type="button">مسح البيانات</button>
+          </div>
+
+          <div id="driverSaved" class="hidden col-span-2 mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200">
+            تم حفظ بيانات السائق والمركبة محليًا.
+          </div>
+        </form>
+      </div>
+
+      <!-- عرض مختصر للبيانات المحفوظة -->
+      <div id="driverPreview" class="bg-white rounded-2xl shadow-soft p-4 mt-3 hidden"></div>
+    </section>
 
     <!-- Bottom Sheet: نموذج الحجز -->
     <div class="sheet px-3 safe-bottom" id="sheet">
@@ -186,29 +294,88 @@
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z"/></svg>
           <span class="text-[11px]">طلباتي</span>
         </button>
-        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabWallet">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M2 7a3 3 0 0 1 3-3h13a2 2 0 0 1 2 2v2h-2V6H5a1 1 0 0 0-1 1v1h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>
-          <span class="text-[11px]">المحفظة</span>
+        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabDriver">
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.667-8 6v2h16v-2c0-3.333-2.67-6-8-6z"/></svg>
+          <span class="text-[11px]">سائق/مركبة</span>
         </button>
         <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabProfile">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.667-8 6v2h16v-2c0-3.333-2.67-6-8-6z"/></svg>
-          <span class="text-[11px]">حسابي</span>
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M2 7a3 3 0 0 1 3-3h13a2 2 0 0 1 2 2v2h-2V6H5a1 1 0 0 0-1 1v1h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>
+          <span class="text-[11px]">المحفظة</span>
         </button>
       </div>
     </nav>
 
   </div>
 
-  <!-- Scripts -->
+  <!-- PWA: Manifest + Service Worker مضمّنان -->
+  <script>
+    // Manifest inline (كـ Blob)
+    const manifest = {
+      name: "وسيلة — تطبيق سيارات الحوض",
+      short_name: "وسيلة",
+      start_url: ".",
+      display: "standalone",
+      theme_color: "#1B6AA5",
+      background_color: "#ffffff",
+      dir: "rtl",
+      lang: "ar",
+      icons: [
+        { src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1B6AA5\"/><stop offset=\"0.5\" stop-color=\"#0ea5e9\"/><stop offset=\"1\" stop-color=\"#10B981\"/></linearGradient></defs><rect width=\"128\" height=\"128\" rx=\"24\" fill=\"url(#g)\"/><path d=\"M28 74a12 12 0 1 0 11.8 9.5H92a12 12 0 1 0 11.8-9.5H106V62a9 9 0 0 0-9-9H76V45a7 7 0 0 0-7-7H59a7 7 0 0 0-7 7v8H37a9 9 0 0 0-9 9v12Z\" fill=\"#fff\"/></svg>'), sizes:"128x128", type:"image/svg+xml" }
+      ]
+    };
+    const manifestBlob = new Blob([JSON.stringify(manifest)], {type:'application/manifest+json'});
+    const manifestURL = URL.createObjectURL(manifestBlob);
+    const link = document.createElement('link'); link.rel='manifest'; link.href=manifestURL; document.head.appendChild(link);
+
+    // Service worker inline
+    if('serviceWorker' in navigator){
+      const swCode = `
+        const CACHE = 'waseela-cache-v1';
+        const ASSETS = [ './', location.href ];
+        self.addEventListener('install', e=>{
+          e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+        });
+        self.addEventListener('activate', e=>{
+          e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));
+        });
+        self.addEventListener('fetch', e=>{
+          const req = e.request;
+          e.respondWith(
+            caches.match(req).then(cached=> cached || fetch(req).then(res=>{
+              try{ const copy = res.clone(); caches.open(CACHE).then(c=>c.put(req, copy)); }catch(e){}
+              return res;
+            }).catch(()=> cached || new Response('offline',{status:200})))
+          );
+        });
+      `;
+      const swURL = URL.createObjectURL(new Blob([swCode], {type:'text/javascript'}));
+      navigator.serviceWorker.register(swURL);
+    }
+
+    // A2HS (Add to Home Screen)
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e)=>{
+      e.preventDefault();
+      deferredPrompt = e;
+      const btn = document.getElementById('installBtn');
+      btn.classList.remove('hidden');
+      btn.onclick = async ()=>{
+        btn.classList.add('hidden');
+        deferredPrompt.prompt();
+        await deferredPrompt.userChoice;
+        deferredPrompt = null;
+      };
+    });
+  </script>
+
+  <!-- المنطق العام -->
   <script>
     /* إعدادات التسعير */
     const BASE = 15, PER_KM = 1.2, PER_KG = 0.05
 
     /* خريطة */
     const map = L.map('map', { zoomControl:false }).setView([24.7136,46.6753], 11)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution: '© OpenStreetMap'
-    }).addTo(map)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ attribution: '© OpenStreetMap' }).addTo(map)
 
     /* وضع التحديد */
     let mode = 'pickup' // pickup | drop
@@ -223,7 +390,6 @@
 
     modePickupBtn.addEventListener('click', ()=>{ mode='pickup'; flash(modePickupBtn) })
     modeDropBtn.addEventListener('click',   ()=>{ mode='drop';   flash(modeDropBtn)   })
-
     function flash(btn){ btn.classList.add('ring-2','ring-blue-300'); setTimeout(()=>btn.classList.remove('ring-2','ring-blue-300'),400) }
 
     map.on('click', (e)=>{
@@ -247,7 +413,6 @@
         navigator.geolocation.getCurrentPosition(pos=>{
           const {latitude,longitude}=pos.coords
           map.setView([latitude,longitude], 13)
-          // اجعل الموقع الحالي كنقطة تحميل إذا لم تُحدد
           if(!pickup){
             pickup = {lat:latitude, lng:longitude}
             if(pickupMarker) pickupMarker.remove()
@@ -267,18 +432,29 @@
       const dLon = toRad(b.lng - a.lng)
       const lat1 = toRad(a.lat)
       const lat2 = toRad(b.lat)
+      const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*mathsin(dLon/2)**2
+    }
+  </script>
+  <script>
+    // (تصحيح سهو الكتابة السابقة)
+    function haversine(a,b){
+      const toRad = d=>d*Math.PI/180
+      const R=6371
+      const dLat = toRad(b.lat - a.lat)
+      const dLon = toRad(b.lng - a.lng)
+      const lat1 = toRad(a.lat)
+      const lat2 = toRad(b.lat)
       const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2
       return 2*R*Math.asin(Math.sqrt(h))
     }
-
     function updateEstimates(){
       const weight = Number(document.getElementById('weight')?.value || 0)
       let km = (pickup && drop) ? haversine(pickup, drop) : 0
       km = Math.round(km * 10) / 10
       const price = Math.max(0, BASE + km*PER_KM + weight*PER_KG).toFixed(2)
-      distanceEl.textContent = isNaN(km)? '—' : km
-      priceEl.textContent = price
-      priceInline.textContent = price
+      document.getElementById('distanceKm').textContent = isNaN(km)? '—' : km
+      document.getElementById('price').textContent = price
+      const pi = document.getElementById('priceInline'); if(pi) pi.textContent = price
     }
 
     /* Sheets */
@@ -292,18 +468,14 @@
     document.getElementById('ctaTop').addEventListener('click', ()=>{ openSheet(); scrollTo({top:0,behavior:'smooth'}) })
     document.getElementById('closeSheet').addEventListener('click', closeSheet)
 
-    // الحقول داخل الشيت
     const pickupText = document.getElementById('pickupText')
     const dropText   = document.getElementById('dropText')
     const weightEl   = document.getElementById('weight')
     const dateEl     = document.getElementById('date')
     const notesEl    = document.getElementById('notes')
 
-    // انتقال للتأكيد
     document.getElementById('nextConfirm').addEventListener('click', ()=>{
-      // تحقق بسيط
       if(!pickup || !drop){ alert('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.'); return }
-      // ملخص
       const km = (pickup && drop) ? (Math.round(haversine(pickup, drop)*10)/10) : 0
       const price = Math.max(0, BASE + km*PER_KM + Number(weightEl.value||0)*PER_KG).toFixed(2)
       const summary = `
@@ -322,26 +494,79 @@
     document.getElementById('backBtn').addEventListener('click', ()=>{ closeConfirm(); openSheet() })
     document.getElementById('closeConfirm').addEventListener('click', closeConfirm)
 
-    // تأكيد نهائي
     document.getElementById('confirmBtn').addEventListener('click', ()=>{
       const id = 'R-' + Math.floor(Math.random()*9000+1000)
       document.getElementById('rideId').textContent = id
       document.getElementById('afterConfirm').classList.remove('hidden')
     })
 
-    // تبويب سفلي
-    ['tabHome','tabOrders','tabWallet','tabProfile'].forEach(id=>{
+    weightEl.addEventListener('input', updateEstimates)
+
+    // تبويب: الرئيسية/السائق
+    const homePage = document.getElementById('homePage')
+    const driverPage = document.getElementById('driverPage')
+    const tabs = ['tabHome','tabOrders','tabDriver','tabProfile']
+    tabs.forEach(id=>{
       document.getElementById(id).addEventListener('click', ()=>{
-        if(id==='tabHome'){ window.scrollTo({top:0,behavior:'smooth'}) }
+        if(id==='tabHome'){ homePage.classList.remove('hidden'); driverPage.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}) }
+        else if(id==='tabDriver'){ driverPage.classList.remove('hidden'); homePage.classList.add('hidden'); window.scrollTo({top:0,behavior:'smooth'}) }
         else alert('هذه الواجهة تجريبية — سيتم تفعيلها لاحقًا.')
       })
     })
 
+    // نموذج السائق/المركبة: حفظ محلي
+    const driverForm = document.getElementById('driverForm')
+    const driverSaved = document.getElementById('driverSaved')
+    const driverPreview = document.getElementById('driverPreview')
+    const clearDriver = document.getElementById('clearDriver')
+
+    function serializeDriver(form){
+      const fd = new FormData(form)
+      const obj = Object.fromEntries(fd.entries())
+      // خزن أسماء الملفات فقط (الديمو)
+      obj.licenseImgName = (fd.get('licenseImg') && fd.get('licenseImg').name) || ''
+      obj.vehicleRegName = (fd.get('vehicleReg') && fd.get('vehicleReg').name) || ''
+      return obj
+    }
+    function renderPreview(data){
+      driverPreview.innerHTML = `
+        <div class="text-sm">
+          <div class="font-semibold text-waseela-primary mb-2">البيانات المحفوظة:</div>
+          <div><b>السائق:</b> ${data.driverName} — ${data.driverPhone}</div>
+          <div><b>هوية/إقامة:</b> ${data.driverId} — <b>المنطقة:</b> ${data.region}</div>
+          <div><b>الرخصة:</b> ${data.licenseNo} — <b>انتهاء:</b> ${data.licenseExpiry}</div>
+          <div><b>المركبة:</b> ${data.plate} — ${data.model} — ${data.type} — حمولة ${data.capacityKg} كجم</div>
+          <div><b>مرفقات:</b> رخصة: ${data.licenseImgName || '—'} / الاستمارة: ${data.vehicleRegName || '—'}</div>
+          <div><b>ملاحظات:</b> ${data.notes || '—'}</div>
+        </div>
+      `
+      driverPreview.classList.remove('hidden')
+    }
+    function loadDriver(){
+      const raw = localStorage.getItem('waseela_driver')
+      if(!raw){ driverPreview.classList.add('hidden'); return }
+      try{ const data = JSON.parse(raw); renderPreview(data) }catch(e){ console.warn(e) }
+    }
+
+    driverForm.addEventListener('submit', (e)=>{
+      e.preventDefault()
+      const data = serializeDriver(driverForm)
+      localStorage.setItem('waseela_driver', JSON.stringify(data))
+      driverSaved.classList.remove('hidden')
+      renderPreview(data)
+      setTimeout(()=>driverSaved.classList.add('hidden'), 2500)
+    })
+
+    clearDriver.addEventListener('click', ()=>{
+      localStorage.removeItem('waseela_driver')
+      driverPreview.classList.add('hidden')
+      driverForm.reset()
+    })
+
+    loadDriver()
+
     // افتح نموذج الحجز مباشرة على الشاشات الصغيرة
     if (window.matchMedia('(max-width: 640px)').matches) openSheet()
-
-    // تحدّث السعر عند تغيير الوزن
-    weightEl.addEventListener('input', updateEstimates)
   </script>
 </body>
 </html>
