@@ -130,7 +130,7 @@
     </main>
 
     <!-- طلباتي -->
-    <section id="ordersPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
+    <section id="ordersPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">طلباتي</h2>
         <div id="ordersList" class="space-y-3 text-sm"></div>
@@ -139,7 +139,7 @@
     </section>
 
     <!-- سائق/مركبات -->
-    <section id="driverPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
+    <section id="driverPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">تسجيل سائق ومركبات (أصحاب الونيتات)</h2>
         <p class="text-sm text-gray-600 mb-4">البيانات تحفظ محليًا أو تُرفع للمخزن عند تفعيل Supabase.</p>
@@ -230,7 +230,7 @@
     </section>
 
     <!-- المحفظة -->
-    <section id="walletPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
+    <section id="walletPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">المحفظة</h2>
         <div class="text-sm">الرصيد الحالي: <b id="walletBalance">0.00</b> ر.س</div>
@@ -244,7 +244,7 @@
     </section>
 
     <!-- الحساب -->
-    <section id="profilePage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
+    <section id="profilePage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">الحساب</h2>
         <div id="profileInfo" class="text-sm text-gray-700">—</div>
@@ -254,6 +254,27 @@
         </div>
       </div>
     </section>
+
+    <!-- ⬇️ التذييل التعريفي -->
+    <footer class="px-4 pt-2 pb-20">
+      <div class="max-w-screen-md mx-auto">
+        <div class="bg-white border rounded-2xl shadow-soft p-4 flex items-center gap-3">
+          <!-- شارة بسيطة -->
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl grad-primary">
+            <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="currentColor" aria-hidden="true">
+              <path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Z"/>
+            </svg>
+          </span>
+          <div class="text-sm leading-5">
+            <div class="font-semibold text-waseela-primary">وسيلة</div>
+            <div class="text-gray-600">
+              تصميم نموذج تطبيق وسيلة مقدم من قبل
+              <span class="font-semibold">شركة تلبية للبحث والتطوير</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
 
     <!-- شيت الحجز -->
     <div class="sheet px-3 safe-bottom" id="sheet">
@@ -428,7 +449,7 @@
     function updateEstimates(){
       const weight=Number(document.getElementById('weight')?.value||0);
       let geoKm=(pickup&&drop)?haversine(pickup,drop):0; geoKm=Math.round(geoKm*10)/10;
-      let roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
+      let roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*1.25*10)/10;
       const price=Math.max(0,BASE+roadKm*PER_KM+weight*PER_KG).toFixed(2);
       distanceEl.textContent=geoKm||'—'; roadEl.textContent=roadKm||'—'; priceEl.textContent=price; if(priceInline) priceInline.textContent=price;
     }
@@ -442,7 +463,7 @@
     document.getElementById('nextConfirm').addEventListener('click',()=>{
       if(!pickup||!drop){alert('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.');return}
       const geoKm=(pickup&&drop)?(Math.round(haversine(pickup,drop)*10)/10):0;
-      const roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
+      const roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*1.25*10)/10;
       const price=Math.max(0,BASE+roadKm*PER_KM+Number(weightEl.value||0)*PER_KG).toFixed(2);
       const summary=`
         <div><b>التحميل:</b> ${pickupText.value||'—'} <span class="text-gray-500">(${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)})</span></div>
@@ -593,7 +614,7 @@
       el.innerHTML=`<div><b>الاسم:</b> ${driver.driverName} — <b>الهاتف:</b> ${driver.driverPhone||'—'}</div>
         <div><b>المنطقة:</b> ${driver.region||'—'}</div>
         <div><b>الرخصة:</b> ${driver.licenseNo||'—'} — <b>انتهاء:</b> ${driver.licenseExpiry||'—'}</div>
-        <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div>`;
+        <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4.list-disc">${vs}</ul></div>`;
     }
     renderProfile();
 
@@ -612,7 +633,7 @@
       const el=document.createElement('div'); el.className="border rounded-xl p-3"; el.dataset.id=idx;
       el.innerHTML=`<div class="grid grid-cols-2 gap-3">
           <div><label class="block text-gray-700">رقم اللوحة</label><input name="plate" value="${data.plate||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
-          <div><label class="block text-gray-700">الموديل</label><input name="model" value="${data.model||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
+          <div><label class="block text-gray-700">الموديل</label><input name="model" value="${data.model||''}" class="mt-1 w-full border rounded-xl.p-3" required/></div>
           <div><label class="block text-gray-700">النوع</label>
             <select name="type" class="mt-1 w-full border rounded-xl p-3" required>
               <option value="">اختر النوع</option>
@@ -668,11 +689,11 @@
       const driver=JSON.parse(localStorage.getItem('waseela_driver')||'{}'); const lastRide=JSON.parse(localStorage.getItem('waseela_last_ride')||'null');
       const blob=new Blob([JSON.stringify({driver,lastRide},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_export.json'; a.click(); URL.revokeObjectURL(url);
     });
-    clearDriver.addEventListener('click',()=>{localStorage.removeItem('waseela_driver'); driverPreview.classList.add('hidden'); driverForm.reset(); vehiclesWrap.innerHTML=''; renderProfile()});
+    document.getElementById('clearDriver').addEventListener('click',()=>{localStorage.removeItem('waseela_driver'); driverPreview.classList.add('hidden'); driverForm.reset(); vehiclesWrap.innerHTML=''; renderProfile()});
 
     // فتح نموذج الحجز مباشرة على الشاشات الصغيرة
     if(window.matchMedia('(max-width:640px)').matches) openSheet();
-    weightEl.addEventListener('input',updateEstimates);
+    document.getElementById('weight').addEventListener('input',updateEstimates);
 
     // روابط الدفع في التأكيد/المحفظة
     (function initPaymentLinks(){
