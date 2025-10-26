@@ -13,7 +13,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Tajawal','ui-sans-serif','system-ui']},colors:{waseela:{primary:'#1B6AA5',secondary:'#10B981',ink:'#0f172a'}},boxShadow:{soft:'0 12px 30px rgba(27,106,165,.12)'},borderRadius:{'2xl':'1rem'}}}};</script>
 
-  <!-- Leaflet (خريطة) + jsPDF (فواتير PDF) -->
+  <!-- Leaflet + jsPDF -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
@@ -22,25 +22,12 @@
     html,body{height:100%;background:#f7fafc}
     body{font-family:"Tajawal",sans-serif}
     #app{min-height:100%;padding-bottom:64px}
-
     /* ✅ إصلاح تغطية الخريطة على الجوال */
-    #mapWrap{
-      position: relative;
-      border-radius: 16px;
-      overflow: hidden;
-      isolation: isolate;   /* سياق تكديس مستقل */
-      z-index: 0;
-    }
-    /* ارتفاع أدق باستخدام svh مع حدود مناسبة */
+    #mapWrap{position:relative;border-radius:16px;overflow:hidden;isolation:isolate;z-index:0}
     #map{height:clamp(260px,50svh,480px);border-radius:16px}
-    /* خفض طبقات Leaflet داخل الحاوية */
     #mapWrap .leaflet-container{z-index:0}
-    #mapWrap .leaflet-pane,
-    #mapWrap .leaflet-control{z-index:1}
-    /* أي قسم بعد الخريطة يبقى فوقها */
-    .section-after-map,
-    .page{position:relative;z-index:2}
-
+    #mapWrap .leaflet-pane, #mapWrap .leaflet-control{z-index:1}
+    .section-after-map,.page{position:relative;z-index:2}
     .grad-primary{background:linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%)}
     .safe-top{padding-top:env(safe-area-inset-top)}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
@@ -51,39 +38,35 @@
     .pill{padding:2px 8px;border-radius:999px;font-size:11px}
     .page{display:none}.page.active{display:block}
     .error{color:#b91c1c;font-size:12px}
-
-    /* اجعل الرأس والتبويب دائمًا فوق الخريطة */
     header, nav.tabbar{z-index:900 !important}
-
-    /* شاشات صغيرة جدًا */
-    @media (max-width:380px){
-      #map{height:45svh}
-    }
+    @media (max-width:380px){#map{height:45svh}}
+    /* نافذة الدخول */
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:1100}
+    .modal.show{display:flex;align-items:center;justify-content:center}
   </style>
 </head>
 <body class="text-waseela-ink">
   <div id="app" class="safe-top">
 
-    <!-- ===== إعدادات قابلة للتعديل (ضع مفاتيحك هنا) ===== -->
+    <!-- ===== إعدادات قابلة للتعديل ===== -->
     <script>
-      // تسعير
-      const BASE = 15, PER_KM = 1.2, PER_KG = 0.05;
-      // عند فشل خدمة الطريق نستخدم عامل تقريبي من المسافة الجوية:
+      // تسعير افتراضي (قابل للتعديل من لوحة المدير)
+      let PRICING = JSON.parse(localStorage.getItem('waseela_pricing')||'null') || { BASE:15, PER_KM:1.2, PER_KG:0.05 };
       const ROAD_FACTOR_FALLBACK = 1.25;
 
-      // رقم افتراضي للاتصال/واتساب (يستبدل تلقائيًا برقم السائق المُسجّل إن وُجد)
+      // كلمات مرور/إعدادات
+      const ADMIN_PASS = localStorage.getItem('waseela_admin_pass') || 'admin123'; // يمكن تغييره من لوحة المدير
       const DEFAULT_DRIVER_PHONE = '0550000000';
 
-      // رابط دفع (Stripe Payment Link أو أي بوابة دفع) — اختياري
-      const PAYMENT_LINK = '';
+      // دفع اختياري
+      const PAYMENT_LINK = localStorage.getItem('waseela_payment_link') || '';
 
-      // تكامل Supabase Storage (اختياري للرفع)
-      // أنشئ Bucket باسم "documents" وفعّل السياسة العامة المناسبة للرفع/القراءة
-      const SUPABASE_URL = '';         // مثال: https://abcd.supabase.co
-      const SUPABASE_ANON_KEY = '';    // مفتاح anon public
+      // رفع اختياري (Supabase)
+      const SUPABASE_URL = '';   // مثال: https://abcd.supabase.co
+      const SUPABASE_ANON_KEY = '';
       const SUPABASE_BUCKET = 'documents';
     </script>
-    <!-- ================================================ -->
+    <!-- ================================== -->
 
     <!-- Header -->
     <header class="px-4 py-2 bg-white shadow-sm sticky top-0">
@@ -99,6 +82,9 @@
         </div>
 
         <div class="flex items-center gap-2">
+          <span id="authBadge" class="hidden pill bg-gray-100 text-gray-700"></span>
+          <button id="loginBtn" class="px-3 py-2 rounded-lg border text-sm">دخول</button>
+          <button id="logoutBtn" class="px-3 py-2 rounded-lg border text-sm hidden">خروج</button>
           <button id="modePickup" class="pill bg-blue-50 text-blue-700 border border-blue-200">تحديد التحميل</button>
           <button id="modeDrop"   class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">تحديد التفريغ</button>
           <button id="installBtn" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft hidden">تثبيت</button>
@@ -119,10 +105,7 @@
       </section>
 
       <section class="bg-white rounded-2xl shadow-soft p-2">
-        <!-- ✅ حاوية الخريطة الجديدة لمنع التداخل -->
-        <div id="mapWrap">
-          <div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div>
-        </div>
+        <div id="mapWrap"><div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div></div>
         <div class="px-2 py-2 text-[12px] text-gray-500 section-after-map">
           اختر الوضع ثم انقر على الخريطة لتحديد <b>التحميل</b> أو <b>التفريغ</b>.
         </div>
@@ -130,7 +113,7 @@
     </main>
 
     <!-- طلباتي -->
-    <section id="ordersPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
+    <section id="ordersPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">طلباتي</h2>
         <div id="ordersList" class="space-y-3 text-sm"></div>
@@ -138,33 +121,36 @@
       </div>
     </section>
 
-    <!-- سائق/مركبات -->
-    <section id="driverPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
+    <!-- سائق/مركبات (حساب السائق) -->
+    <section id="driverPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">تسجيل سائق ومركبات (أصحاب الونيتات)</h2>
-        <p class="text-sm text-gray-600 mb-4">البيانات تحفظ محليًا أو تُرفع للمخزن عند تفعيل Supabase.</p>
+        <h2 class="text-lg font-extrabold mb-2">حساب السائق — تسجيل/تحديث</h2>
+        <p class="text-sm text-gray-600 mb-4">ادخل بياناتك لتفعيل حسابك كسائق ونقل الأحمال بسيارات الحوض (الونيت).</p>
 
         <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm" novalidate>
-          <div class="col-span-2 font-semibold text-waseela-primary">بيانات السائق</div>
+          <div class="col-span-2 font-semibold text-waseela-primary">بيانات الدخول</div>
+          <div>
+            <label class="block text-gray-700">رقم الجوال (اسم المستخدم)</label>
+            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" pattern="^05\\d{8}$" />
+            <div data-err="driverPhone" class="error hidden">أدخل رقم بصيغة 05XXXXXXXX</div>
+          </div>
+          <div>
+            <label class="block text-gray-700">كلمة المرور</label>
+            <input name="password" required type="password" class="mt-1 w-full border rounded-xl p-3" placeholder="••••••••" />
+            <div data-err="password" class="error hidden">كلمة المرور مطلوبة</div>
+          </div>
 
+          <div class="col-span-2 font-semibold text-waseela-primary">بيانات السائق</div>
           <div>
             <label class="block text-gray-700">الاسم الكامل</label>
             <input name="driverName" required class="mt-1 w-full border rounded-xl p-3" placeholder="الاسم الثلاثي" />
             <div data-err="driverName" class="error hidden">الاسم مطلوب</div>
           </div>
-
-          <div>
-            <label class="block text-gray-700">رقم الجوال</label>
-            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" pattern="^05\\d{8}$" />
-            <div data-err="driverPhone" class="error hidden">أدخل رقم بصيغة 05XXXXXXXX</div>
-          </div>
-
           <div>
             <label class="block text-gray-700">رقم الهوية/الإقامة</label>
             <input name="driverId" required class="mt-1 w-full border rounded-xl p-3" inputmode="numeric" pattern="^\\d{10}$" placeholder="10 أرقام" />
             <div data-err="driverId" class="error hidden">رقم من 10 أرقام</div>
           </div>
-
           <div>
             <label class="block text-gray-700">المنطقة</label>
             <select name="region" required class="mt-1 w-full border rounded-xl p-3">
@@ -176,52 +162,41 @@
             </select>
             <div data-err="region" class="error hidden">اختر المنطقة</div>
           </div>
-
           <div>
             <label class="block text-gray-700">رقم رخصة القيادة</label>
             <input name="licenseNo" required class="mt-1 w-full border rounded-xl p-3" />
-            <div data-err="licenseNo" class="error hidden">الرجاء إدخال رقم الرخصة</div>
+            <div data-err="licenseNo" class="error hidden">مطلوب</div>
           </div>
-
           <div>
             <label class="block text-gray-700">تاريخ انتهاء الرخصة</label>
             <input name="licenseExpiry" type="date" required class="mt-1 w-full border rounded-xl p-3" />
-            <div data-err="licenseExpiry" class="error hidden">يرجى تحديد تاريخ الانتهاء</div>
+            <div data-err="licenseExpiry" class="error hidden">مطلوب</div>
           </div>
 
           <div class="col-span-2 font-semibold text-waseela-primary mt-2 flex items-center justify-between">
             <span>مركبات الونيت</span>
             <button id="addVehicle" type="button" class="px-3 py-1 rounded-lg border">+ إضافة مركبة</button>
           </div>
-
           <div id="vehiclesWrap" class="col-span-2 space-y-3"></div>
 
-          <div class="col-span-2 font-semibold text-waseela-primary mt-2">مستندات (اختياري)</div>
-          <div>
-            <label class="block text-gray-700">صورة رخصة القيادة</label>
-            <input name="licenseImg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
-          </div>
-          <div>
-            <label class="block text-gray-700">استمارة المركبة</label>
-            <input name="vehicleReg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
-          </div>
-
+          <div class="col-span-2 font-semibold text-waseela-primary mt-2">توفُّر السائق</div>
           <div class="col-span-2">
-            <label class="block text-gray-700">ملاحظات</label>
-            <textarea name="notes" rows="2" class="mt-1 w-full border rounded-xl p-3" placeholder="تفاصيل إضافية…"></textarea>
+            <label class="inline-flex items-center gap-2">
+              <input type="checkbox" name="available" class="w-4 h-4"> متاح لاستقبال الطلبات
+            </label>
           </div>
 
           <div class="col-span-2 flex gap-3 mt-1">
-            <button class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft" type="submit">حفظ التسجيل</button>
-            <button id="clearDriver" class="flex-1 px-6 py-3 rounded-xl border" type="button">مسح البيانات</button>
+            <button class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft" type="submit">حفظ/تحديث الحساب</button>
+            <button id="clearDriver" class="flex-1 px-6 py-3 rounded-xl border" type="button">مسح</button>
           </div>
 
           <div class="col-span-2 flex gap-3 mt-2">
-            <button id="exportJson" class="flex-1 px-6 py-3 rounded-xl border" type="button">تصدير البيانات JSON</button>
+            <button id="exportJson" class="flex-1 px-6 py-3 rounded-xl border" type="button">تصدير JSON</button>
           </div>
 
           <div id="driverSaved" class="hidden col-span-2 mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200">
-            تم حفظ/تحديث بيانات السائق والمركبات.
+            تم حفظ/تحديث حساب السائق.
           </div>
         </form>
       </div>
@@ -230,21 +205,21 @@
     </section>
 
     <!-- المحفظة -->
-    <section id="walletPage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
+    <section id="walletPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">المحفظة</h2>
         <div class="text-sm">الرصيد الحالي: <b id="walletBalance">0.00</b> ر.س</div>
         <div class="flex gap-2 mt-3">
           <input id="topupAmount" type="number" placeholder="مبلغ التعبئة" class="w-full border rounded-xl p-3 text-sm">
-          <button id="topupBtn" class="px-4 py-2 rounded-xl text-white grad-primary">تعبئة</button>
+          <button id="topupBtn" class="px-4 py-2 rounded-xl text-white.grad-primary">تعبئة</button>
           <a id="payNow" href="#" target="_blank" class="px-4 py-2 rounded-xl border">دفع</a>
         </div>
         <div id="walletMsg" class="hidden mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm">تم تحديث الرصيد.</div>
       </div>
     </section>
 
-    <!-- الحساب -->
-    <section id="profilePage" class="page px-4 pt-4 pb-4 max-w-screen-md mx-auto">
+    <!-- الحساب (عام للمستخدم/السائق) -->
+    <section id="profilePage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
         <h2 class="text-lg font-extrabold mb-2">الحساب</h2>
         <div id="profileInfo" class="text-sm text-gray-700">—</div>
@@ -255,26 +230,55 @@
       </div>
     </section>
 
-    <!-- ⬇️ التذييل التعريفي -->
-    <footer class="px-4 pt-2 pb-20">
-      <div class="max-w-screen-md mx-auto">
-        <div class="bg-white border rounded-2xl shadow-soft p-4 flex items-center gap-3">
-          <!-- شارة بسيطة -->
-          <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl grad-primary">
-            <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="currentColor" aria-hidden="true">
-              <path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Z"/>
-            </svg>
-          </span>
-          <div class="text-sm leading-5">
-            <div class="font-semibold text-waseela-primary">وسيلة</div>
-            <div class="text-gray-600">
-              تصميم نموذج تطبيق وسيلة مقدم من قبل
-              <span class="font-semibold">شركة تلبية للبحث والتطوير</span>
-            </div>
+    <!-- 🛠️ لوحة إدارة التطبيق -->
+    <section id="adminPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
+      <div class="bg-white rounded-2xl shadow-soft p-4">
+        <h2 class="text-lg font-extrabold mb-2">لوحة الإدارة</h2>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+          <div class="border rounded-xl p-3">
+            <div class="font-semibold mb-2">التسعير</div>
+            <label class="block mb-1">فتح الطلب (BASE)</label>
+            <input id="admBase" type="number" step="0.1" class="w-full border rounded-xl p-2 mb-2">
+            <label class="block mb-1">لكل كم (PER_KM)</label>
+            <input id="admPerKm" type="number" step="0.1" class="w-full border rounded-xl p-2 mb-2">
+            <label class="block mb-1">لكل كجم (PER_KG)</label>
+            <input id="admPerKg" type="number" step="0.01" class="w-full border rounded-xl p-2 mb-2">
+            <button id="savePricing" class="px-4 py-2 rounded-xl text-white grad-primary">حفظ التسعير</button>
+          </div>
+
+          <div class="border rounded-xl p-3">
+            <div class="font-semibold mb-2">إعدادات عامة</div>
+            <label class="block mb-1">رابط الدفع (اختياري)</label>
+            <input id="admPayLink" class="w-full border rounded-xl p-2 mb-2" placeholder="https://...">
+            <label class="block mb-1">كلمة مرور المدير</label>
+            <input id="admPass" type="password" class="w-full border rounded-xl p-2 mb-2" placeholder="تغيير كلمة المرور">
+            <button id="saveGeneral" class="px-4 py-2 rounded-xl border">حفظ الإعدادات</button>
           </div>
         </div>
+
+        <div class="border rounded-xl p-3 mt-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">السائقون</div>
+            <div class="flex gap-2">
+              <button id="exportDriversCsv" class="px-3 py-1 rounded-lg border">تصدير CSV</button>
+            </div>
+          </div>
+          <div id="adminDrivers" class="text-sm mt-2 space-y-2"></div>
+        </div>
+
+        <div class="border rounded-xl p-3 mt-4">
+          <div class="flex items-center justify-between">
+            <div class="font-semibold">الطلبات</div>
+            <div class="flex gap-2">
+              <button id="exportOrdersCsv" class="px-3 py-1 rounded-lg border">تصدير CSV</button>
+              <button id="clearOrders" class="px-3 py-1 rounded-lg border text-red-600">مسح الكل</button>
+            </div>
+          </div>
+          <div id="adminOrders" class="text-sm mt-2 space-y-2"></div>
+        </div>
       </div>
-    </footer>
+    </section>
 
     <!-- شيت الحجز -->
     <div class="sheet px-3 safe-bottom" id="sheet">
@@ -366,7 +370,7 @@
         </button>
         <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="driver">
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.667-8 6v2h16v-2c0-3.333-2.67-6-8-6z"/></svg>
-          <span class="text-[11px]">سائق/مركبة</span>
+          <span class="text-[11px]">السائق</span>
         </button>
         <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="wallet">
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M2 7a3 3 0 0 1 3-3h13a2 2 0 0 1 2 2v2h-2V6H5a1 1 0 0 0-1 1v1h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>
@@ -379,6 +383,35 @@
       </div>
     </nav>
 
+  </div>
+
+  <!-- نافذة الدخول (سائق/مدير) -->
+  <div id="authModal" class="modal">
+    <div class="bg-white rounded-2xl shadow-2xl w-[92vw] max-w-md p-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-extrabold">تسجيل الدخول</h3>
+        <button id="closeAuth" class="text-gray-500">إغلاق</button>
+      </div>
+      <div class="mt-3 grid grid-cols-2 gap-2">
+        <button id="tabDriver" class="px-3 py-2 rounded-lg border bg-gray-50">سائق</button>
+        <button id="tabAdmin" class="px-3 py-2 rounded-lg border">مدير</button>
+      </div>
+
+      <div id="paneDriver" class="mt-3">
+        <label class="block text-sm">رقم الجوال</label>
+        <input id="loginPhone" class="w-full border rounded-xl p-3 mt-1" placeholder="05xxxxxxxx" inputmode="tel">
+        <label class="block text-sm mt-2">كلمة المرور</label>
+        <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mt-1" placeholder="••••••••">
+        <button id="doDriverLogin" class="mt-3 w-full px-4 py-2 rounded-xl text-white grad-primary">دخول كسائق</button>
+        <div class="text-[12px] text-gray-500 mt-2">لم تسجل بعد؟ انتقل لصفحة <b>السائق</b> وسجّل حسابك.</div>
+      </div>
+
+      <div id="paneAdmin" class="mt-3 hidden">
+        <label class="block text-sm">كلمة مرور المدير</label>
+        <input id="adminPassInput" type="password" class="w-full border rounded-xl p-3 mt-1" placeholder="كلمة المرور">
+        <button id="doAdminLogin" class="mt-3 w-full px-4 py-2 rounded-xl text-white grad-primary">دخول كمدير</button>
+      </div>
+    </div>
   </div>
 
   <!-- PWA (Manifest + SW) -->
@@ -396,76 +429,61 @@
 
   <!-- منطق التطبيق -->
   <script>
-    // خريطة
+    /* ========= Utilities ========= */
+    const q = s=>document.querySelector(s);
+    const qa = s=>Array.from(document.querySelectorAll(s));
+    const toast = (msg)=>alert(msg); // بسيط
+
+    /* ========= خريطة ========= */
     const map=L.map('map',{zoomControl:false}).setView([24.7136,46.6753],11);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
 
-    // نقاط ومسار
     let mode='pickup',pickup=null,drop=null,pickupMarker,dropMarker,routeLine;
-    const modePickupBtn=document.getElementById('modePickup'),modeDropBtn=document.getElementById('modeDrop');
-    const distanceEl=document.getElementById('distanceKm'),roadEl=document.getElementById('roadKm'),priceEl=document.getElementById('price'),priceInline=document.getElementById('priceInline');
-    modePickupBtn.addEventListener('click',()=>{mode='pickup';flash(modePickupBtn)}); modeDropBtn.addEventListener('click',()=>{mode='drop';flash(modeDropBtn)});
+    const distanceEl=q('#distanceKm'),roadEl=q('#roadKm'),priceEl=q('#price'),priceInline=q('#priceInline');
+    q('#modePickup').onclick=()=>{mode='pickup';flash(q('#modePickup'))}
+    q('#modeDrop').onclick=()=>{mode='drop';flash(q('#modeDrop'))}
     function flash(btn){btn.classList.add('ring-2','ring-blue-300');setTimeout(()=>btn.classList.remove('ring-2','ring-blue-300'),400)}
-
     map.on('click',e=>{
-      if(mode==='pickup'){ pickup=e.latlng; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); document.getElementById('pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`;}
-      else{ drop=e.latlng; if(dropMarker) dropMarker.remove(); dropMarker=L.marker(drop).addTo(map); document.getElementById('dropMeta').textContent=`إحداثيات التفريغ: ${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)}`;}
+      if(mode==='pickup'){ pickup=e.latlng; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); q('#pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`;}
+      else{ drop=e.latlng; if(dropMarker) dropMarker.remove(); dropMarker=L.marker(drop).addTo(map); q('#dropMeta').textContent=`إحداثيات التفريغ: ${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)}`;}
       drawRoute(); updateEstimates();
     });
-
-    document.getElementById('locateBtn').addEventListener('click',()=>{
+    q('#locateBtn').onclick=()=>{
       if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{
         const {latitude,longitude}=pos.coords; map.setView([latitude,longitude],13);
-        if(!pickup){pickup={lat:latitude,lng:longitude}; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); document.getElementById('pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`; drawRoute(); updateEstimates();}
-      })}else alert('المتصفح لا يدعم تحديد الموقع')
-    });
-
+        if(!pickup){pickup={lat:latitude,lng:longitude}; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); q('#pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`; drawRoute(); updateEstimates();}
+      })}else toast('المتصفح لا يدعم تحديد الموقع')
+    };
     function haversine(a,b){const R=6371,toRad=d=>d*Math.PI/180,dLat=toRad(b.lat-a.lat),dLon=toRad(b.lng-a.lng),lat1=toRad(a.lat),lat2=toRad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
-
-    async function fetchOSRMRoute(a,b){
-      const url=`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
-      const res=await fetch(url,{mode:'cors'}); if(!res.ok) throw new Error('OSRM error'); const data=await res.json();
-      if(!data.routes||!data.routes.length) throw new Error('No routes'); const r=data.routes[0];
-      return {distanceKm: r.distance/1000, geometry: r.geometry};
-    }
-
+    async function fetchOSRMRoute(a,b){const url=`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;const res=await fetch(url,{mode:'cors'});if(!res.ok)throw new Error('OSRM');const data=await res.json();if(!data.routes?.length)throw new Error('No routes');const r=data.routes[0];return {distanceKm:r.distance/1000,geometry:r.geometry}}
     async function drawRoute(){
       if(routeLine){map.removeLayer(routeLine);routeLine=null}
       if(pickup&&drop){
-        try{
-          const r=await fetchOSRMRoute(pickup,drop);
-          routeLine=L.geoJSON({type:'Feature',geometry:r.geometry}).addTo(map);
-          map.fitBounds(routeLine.getBounds(),{padding:[20,20]});
-          map._lastRoadKm = Math.round(r.distanceKm*10)/10;
-        }catch(_){
-          routeLine=L.polyline([pickup,drop],{color:'#1B6AA5',weight:5,opacity:.65}).addTo(map);
-          map.fitBounds(routeLine.getBounds(),{padding:[20,20]});
-          map._lastRoadKm = null;
-        }
+        try{const r=await fetchOSRMRoute(pickup,drop);routeLine=L.geoJSON({type:'Feature',geometry:r.geometry}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[20,20]});map._lastRoadKm=Math.round(r.distanceKm*10)/10;}
+        catch(_){routeLine=L.polyline([pickup,drop],{color:'#1B6AA5',weight:5,opacity:.65}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[20,20]});map._lastRoadKm=null}
         updateEstimates();
       }
     }
-
     function updateEstimates(){
-      const weight=Number(document.getElementById('weight')?.value||0);
+      const weight=Number(q('#weight')?.value||0);
       let geoKm=(pickup&&drop)?haversine(pickup,drop):0; geoKm=Math.round(geoKm*10)/10;
-      let roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*1.25*10)/10;
-      const price=Math.max(0,BASE+roadKm*PER_KM+weight*PER_KG).toFixed(2);
+      let roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
+      const price=Math.max(0,PRICING.BASE+roadKm*PRICING.PER_KM+weight*PRICING.PER_KG).toFixed(2);
       distanceEl.textContent=geoKm||'—'; roadEl.textContent=roadKm||'—'; priceEl.textContent=price; if(priceInline) priceInline.textContent=price;
     }
 
-    // شيتات
-    const sheet=document.getElementById('sheet'), confirmSheet=document.getElementById('confirmSheet');
+    /* ========= شيتات ========= */
+    const sheet=q('#sheet'), confirmSheet=q('#confirmSheet');
     const openSheet=()=>sheet.style.display='block', closeSheet=()=>sheet.style.display='none', openConfirm=()=>confirmSheet.style.display='block', closeConfirm=()=>confirmSheet.style.display='none';
-    document.getElementById('ctaTop').addEventListener('click',()=>{openSheet();scrollTo({top:0,behavior:'smooth'})}); document.getElementById('closeSheet').addEventListener('click', closeSheet);
+    q('#ctaTop').onclick=()=>{openSheet();scrollTo({top:0,behavior:'smooth'})}; q('#closeSheet').onclick=closeSheet;
 
-    const pickupText=document.getElementById('pickupText'),dropText=document.getElementById('dropText'),weightEl=document.getElementById('weight'),dateEl=document.getElementById('date'),notesEl=document.getElementById('notes');
-    document.getElementById('nextConfirm').addEventListener('click',()=>{
-      if(!pickup||!drop){alert('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.');return}
+    const pickupText=q('#pickupText'),dropText=q('#dropText'),weightEl=q('#weight'),dateEl=q('#date'),notesEl=q('#notes');
+    q('#nextConfirm').onclick=()=>{
+      if(!pickup||!drop){toast('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.');return}
       const geoKm=(pickup&&drop)?(Math.round(haversine(pickup,drop)*10)/10):0;
-      const roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*1.25*10)/10;
-      const price=Math.max(0,BASE+roadKm*PER_KM+Number(weightEl.value||0)*PER_KG).toFixed(2);
-      const summary=`
+      const roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
+      const price=Math.max(0,PRICING.BASE+roadKm*PRICING.PER_KM+Number(weightEl.value||0)*PRICING.PER_KG).toFixed(2);
+      q('#summary').innerHTML=`
         <div><b>التحميل:</b> ${pickupText.value||'—'} <span class="text-gray-500">(${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)})</span></div>
         <div><b>التفريغ:</b> ${dropText.value||'—'} <span class="text-gray-500">(${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)})</span></div>
         <div><b>المسافة:</b> ${geoKm} كم — <b>طريق:</b> ${roadKm} كم</div>
@@ -473,23 +491,20 @@
         <div><b>التاريخ:</b> ${dateEl.value||'—'}</div>
         <div><b>ملاحظات:</b> ${notesEl.value||'—'}</div>
         <div class="mt-2 text-emerald-700"><b>السعر التقديري:</b> ${price} ر.س</div>`;
-      document.getElementById('summary').innerHTML=summary;
       closeSheet(); openConfirm();
-    });
+    };
 
-    const afterConfirm=document.getElementById('afterConfirm');
-    document.getElementById('backBtn').addEventListener('click',()=>{afterConfirm.classList.add('hidden');closeConfirm();openSheet()});
-    document.getElementById('closeConfirm').addEventListener('click',()=>{afterConfirm.classList.add('hidden');closeConfirm()});
+    const afterConfirm=q('#afterConfirm');
+    q('#backBtn').onclick=()=>{afterConfirm.classList.add('hidden');closeConfirm();openSheet()}
+    q('#closeConfirm').onclick=()=>{afterConfirm.classList.add('hidden');closeConfirm()}
 
-    // تأكيد الطلب + مشاركة + PDF + روابط اتصال/دفع
-    document.getElementById('confirmBtn').addEventListener('click',()=>{
-      const id='R-'+Math.floor(Math.random()*9000+1000);
-      document.getElementById('rideId').textContent=id;
+    q('#confirmBtn').onclick=()=>{
+      const id='R-'+Math.floor(Math.random()*900000+100000);
+      q('#rideId').textContent=id;
 
-      const driver=JSON.parse(localStorage.getItem('waseela_driver')||'{}');
-      const driverPhone=(driver&&driver.driverPhone)?driver.driverPhone:DEFAULT_DRIVER_PHONE;
-      document.getElementById('callDriver').href=`tel:${driverPhone}`;
-      document.getElementById('smsDriver').href=`sms:${driverPhone}`;
+      const auth = JSON.parse(localStorage.getItem('waseela_auth')||'null'); // {role, phone}
+      const activeDriver = auth?.role==='driver' ? getDriverByPhone(auth.phone) : getActiveApprovedDriver() || null;
+      const driverPhone= activeDriver?.driverPhone || DEFAULT_DRIVER_PHONE;
 
       const payload={
         id,pickup,drop,
@@ -498,11 +513,15 @@
         date:dateEl.value, notes:notesEl.value,
         distanceGeoKm:Number(distanceEl.textContent||0),
         distanceRoadKm:Number(roadEl.textContent||0),
-        price:document.getElementById('price').textContent
+        price:q('#price').textContent,
+        assignedDriver: activeDriver ? {phone:activeDriver.driverPhone,name:activeDriver.driverName} : null
       };
-      localStorage.setItem('waseela_last_ride',JSON.stringify(payload));
-      const orders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'); orders.unshift(payload);
-      localStorage.setItem('waseela_orders',JSON.stringify(orders)); renderOrders();
+      // حفظ في طلباتي (للمستخدم الحالي) + في سجلات الإدارة
+      const myOrders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'); myOrders.unshift(payload);
+      localStorage.setItem('waseela_orders',JSON.stringify(myOrders));
+      const allOrders=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'); allOrders.unshift({...payload, createdAt:new Date().toISOString()});
+      localStorage.setItem('waseela_all_orders',JSON.stringify(allOrders));
+      renderOrders(); renderAdminOrders();
 
       const txt=`طلب حوض جديد:
 رقم: ${id}
@@ -511,27 +530,27 @@
 طريق: ${payload.distanceRoadKm} كم
 وزن: ${payload.weight} كجم
 سعر تقديري: ${payload.price} ر.س
+سائق: ${(activeDriver?.driverName||'—')} (${driverPhone})
 تاريخ: ${payload.date||'—'}
 ملاحظات: ${payload.notes||'—'}`;
-      document.getElementById('shareWhatsApp').href=`https://wa.me/${driverPhone.replace(/^0/,'966')}/?text=${encodeURIComponent(txt)}`;
-      const payLink = PAYMENT_LINK || '';
-      const payA = document.getElementById('payLink'); if(payLink){payA.href=payLink; payA.style.display='inline'} else {payA.style.display='none'}
+      q('#callDriver').href=`tel:${driverPhone}`;
+      q('#smsDriver').href=`sms:${driverPhone}`;
+      q('#shareWhatsApp').href=`https://wa.me/${driverPhone.replace(/^0/,'966')}/?text=${encodeURIComponent(txt)}`;
+      const payA = q('#payLink'); if(PAYMENT_LINK){payA.href=PAYMENT_LINK; payA.style.display='inline'} else {payA.style.display='none'}
       afterConfirm.classList.remove('hidden');
-    });
+    };
 
-    // مشاركة Web Share API
-    document.getElementById('shareBtn').addEventListener('click',()=>{
-      const id=document.getElementById('rideId').textContent||'—';
-      const price=document.getElementById('price').textContent||'—';
-      const roadKm=document.getElementById('roadKm').textContent||'—';
+    q('#shareBtn').onclick=()=>{
+      const id=q('#rideId').textContent||'—';
+      const price=q('#price').textContent||'—';
+      const roadKm=q('#roadKm').textContent||'—';
       const text=`تفاصيل الطلب #${id} • مسافة الطريق: ${roadKm} كم • السعر التقديري: ${price} ر.س`;
-      if(navigator.share){navigator.share({title:'طلب وسيلة',text});}else{alert(text);}
-    });
+      if(navigator.share){navigator.share({title:'طلب وسيلة',text});}else{toast(text);}
+    };
 
-    // توليد PDF للفاتورة
-    document.getElementById('pdfBtn').addEventListener('click',async()=>{
+    q('#pdfBtn').onclick=async()=>{
       const { jsPDF } = window.jspdf;
-      const id=document.getElementById('rideId').textContent||('R-'+Date.now());
+      const id=q('#rideId').textContent||('R-'+Date.now());
       const doc=new jsPDF({unit:'pt',format:'a4'}); let y=60;
       doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('وسيلة - إيصال طلب', 40, y); y+=20;
       doc.setFont('helvetica',''); doc.setFontSize(12);
@@ -539,24 +558,24 @@
         `رقم الطلب: ${id}`,
         `التحميل: ${pickupText.value} (${pickup?.lat?.toFixed(5)}, ${pickup?.lng?.toFixed(5)})`,
         `التفريغ: ${dropText.value} (${drop?.lat?.toFixed(5)}, ${drop?.lng?.toFixed(5)})`,
-        `المسافة (طريق): ${document.getElementById('roadKm').textContent} كم`,
-        `الوزن: ${document.getElementById('weight').value||0} كجم`,
-        `السعر التقديري: ${document.getElementById('price').textContent} ر.س`,
-        `التاريخ: ${document.getElementById('date').value||'—'}`,
-        `ملاحظات: ${document.getElementById('notes').value||'—'}`
+        `المسافة (طريق): ${q('#roadKm').textContent} كم`,
+        `الوزن: ${q('#weight').value||0} كجم`,
+        `السعر التقديري: ${q('#price').textContent} ر.س`,
+        `التاريخ: ${q('#date').value||'—'}`,
+        `ملاحظات: ${q('#notes').value||'—'}`
       ];
       lines.forEach(l=>{doc.text(l,40,y);y+=18;});
       doc.save(`wasila-receipt-${id}.pdf`);
-    });
+    };
 
-    // تبويبات
-    const pages={home:document.getElementById('homePage'),orders:document.getElementById('ordersPage'),driver:document.getElementById('driverPage'),wallet:document.getElementById('walletPage'),profile:document.getElementById('profilePage')};
+    /* ========= تبويبات ========= */
+    const pages={home:q('#homePage'),orders:q('#ordersPage'),driver:q('#driverPage'),wallet:q('#walletPage'),profile:q('#profilePage'),admin:q('#adminPage')};
     function showPage(name){Object.values(pages).forEach(p=>p.classList.remove('active'));(pages[name]||pages.home).classList.add('active');window.scrollTo({top:0,behavior:'instant'})}
-    document.querySelectorAll('nav [data-tab]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.tab)));
+    qa('nav [data-tab]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.tab)));
 
-    // طلباتي
+    /* ========= طلباتي (المستخدم) ========= */
     function renderOrders(){
-      const list=document.getElementById('ordersList'), empty=document.getElementById('ordersEmpty');
+      const list=q('#ordersList'), empty=q('#ordersEmpty');
       const orders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'); list.innerHTML='';
       if(!orders.length){empty.style.display='block'; return} else {empty.style.display='none'}
       orders.forEach(o=>{
@@ -565,17 +584,16 @@
           <div>
             <div class="font-semibold">#${o.id} — ${o.price} ر.س</div>
             <div class="text-[12px] text-gray-600">من ${o.pickupText||'—'} إلى ${o.dropText||'—'} • ${o.distanceRoadKm} كم</div>
+            ${o.assignedDriver?`<div class="text-[12px] text-emerald-700">السائق: ${o.assignedDriver.name} (${o.assignedDriver.phone})</div>`:''}
           </div>
           <div class="flex gap-2">
             <button class="px-3 py-1 rounded-lg border" data-pdf="${o.id}">PDF</button>
-            <a class="px-3 py-1 rounded-lg border" target="_blank" href="https://wa.me/${(JSON.parse(localStorage.getItem('waseela_driver')||'{}').driverPhone||'0550000000').replace(/^0/,'966')}/?text=${encodeURIComponent('متابعة طلب #'+o.id)}">واتساب</a>
           </div>`;
         list.appendChild(row);
         row.querySelector('[data-pdf]').onclick=()=>generateOrderPDF(o);
       });
     }
     renderOrders();
-
     async function generateOrderPDF(o){
       const { jsPDF } = window.jspdf;
       const doc=new jsPDF({unit:'pt',format:'a4'}); let y=60;
@@ -595,45 +613,23 @@
       doc.save(`wasila-receipt-${o.id}.pdf`);
     }
 
-    // محفظة + دفع
-    function loadWallet(){const w=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');document.getElementById('walletBalance').textContent=Number(w.balance).toFixed(2)}
+    /* ========= محفظة ========= */
+    function loadWallet(){const w=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');q('#walletBalance').textContent=Number(w.balance).toFixed(2)}
     function saveWallet(v){localStorage.setItem('waseela_wallet',JSON.stringify(v));loadWallet()}
     loadWallet();
-    document.getElementById('topupBtn').addEventListener('click',()=>{
-      const amt=Number(document.getElementById('topupAmount').value||0); if(amt<=0){alert('أدخل مبلغًا صحيحًا');return}
+    q('#topupBtn').onclick=()=>{
+      const amt=Number(q('#topupAmount').value||0); if(amt<=0){toast('أدخل مبلغًا صحيحًا');return}
       const w=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}'); w.balance=Number(w.balance||0)+amt; saveWallet(w);
-      document.getElementById('walletMsg').classList.remove('hidden'); setTimeout(()=>document.getElementById('walletMsg').classList.add('hidden'),2000); document.getElementById('topupAmount').value='';
-    });
-    const payBtn=document.getElementById('payNow'); if(PAYMENT_LINK){payBtn.href=PAYMENT_LINK}else{payBtn.style.display='none'}
+      q('#walletMsg').classList.remove('hidden'); setTimeout(()=>q('#walletMsg').classList.add('hidden'),2000); q('#topupAmount').value='';
+    };
+    const payBtn=q('#payNow'); if(PAYMENT_LINK){payBtn.href=PAYMENT_LINK}else{payBtn.style.display='none'}
 
-    // الحساب
-    function renderProfile(){
-      const driver=JSON.parse(localStorage.getItem('waseela_driver')||'{}'); const el=document.getElementById('profileInfo');
-      if(!driver.driverName){el.textContent='لا توجد بيانات سائق مسجلة بعد.';return}
-      const vs=(driver.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>';
-      el.innerHTML=`<div><b>الاسم:</b> ${driver.driverName} — <b>الهاتف:</b> ${driver.driverPhone||'—'}</div>
-        <div><b>المنطقة:</b> ${driver.region||'—'}</div>
-        <div><b>الرخصة:</b> ${driver.licenseNo||'—'} — <b>انتهاء:</b> ${driver.licenseExpiry||'—'}</div>
-        <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4.list-disc">${vs}</ul></div>`;
-    }
-    renderProfile();
-
-    document.getElementById('exportAll').addEventListener('click',()=>{
-      const driver=JSON.parse(localStorage.getItem('waseela_driver')||'{}'),orders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'),wallet=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');
-      const blob=new Blob([JSON.stringify({driver,orders,wallet},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_all_export.json'; a.click(); URL.revokeObjectURL(url);
-    });
-    document.getElementById('clearAll').addEventListener('click',()=>{
-      if(confirm('سيتم مسح كل البيانات المحلية. هل أنت متأكد؟')){localStorage.clear(); location.reload()}
-    });
-
-    // فورم السائق + مركبات متعددة + رفع إلى Supabase (اختياري)
-    const driverForm=document.getElementById('driverForm'),vehiclesWrap=document.getElementById('vehiclesWrap'),addVehicleBtn=document.getElementById('addVehicle'),driverSaved=document.getElementById('driverSaved'),driverPreview=document.getElementById('driverPreview'),clearDriver=document.getElementById('clearDriver');
-
+    /* ========= إدارة حساب/سائق ========= */
     function vehicleItem(data={},idx=Date.now()){
       const el=document.createElement('div'); el.className="border rounded-xl p-3"; el.dataset.id=idx;
       el.innerHTML=`<div class="grid grid-cols-2 gap-3">
           <div><label class="block text-gray-700">رقم اللوحة</label><input name="plate" value="${data.plate||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
-          <div><label class="block text-gray-700">الموديل</label><input name="model" value="${data.model||''}" class="mt-1 w-full border rounded-xl.p-3" required/></div>
+          <div><label class="block text-gray-700">الموديل</label><input name="model" value="${data.model||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
           <div><label class="block text-gray-700">النوع</label>
             <select name="type" class="mt-1 w-full border rounded-xl p-3" required>
               <option value="">اختر النوع</option>
@@ -649,21 +645,32 @@
       el.querySelector('[data-remove]').onclick=()=>el.remove();
       return el;
     }
-    addVehicleBtn.addEventListener('click',()=>vehiclesWrap.appendChild(vehicleItem()));
+    const driverForm=q('#driverForm'),vehiclesWrap=q('#vehiclesWrap');
+    q('#addVehicle').onclick=()=>vehiclesWrap.appendChild(vehicleItem());
+    if(!vehiclesWrap.children.length) vehiclesWrap.appendChild(vehicleItem());
 
     function onlyDigits(el,max){el.addEventListener('input',()=>el.value=el.value.replace(/\D/g,'').slice(0,max||100))}
-    const phoneEl=driverForm.elements['driverPhone'],idEl=driverForm.elements['driverId']; onlyDigits(idEl,10); phoneEl.addEventListener('input',()=>{phoneEl.value=phoneEl.value.replace(/\D/g,'').slice(0,10); if(!phoneEl.value.startsWith('05')) phoneEl.value='05'+phoneEl.value.replace(/^05/,'')});
+    const phoneEl=driverForm.elements['driverPhone'],idEl=driverForm.elements['driverId']; onlyDigits(idEl,10);
+    phoneEl.addEventListener('input',()=>{phoneEl.value=phoneEl.value.replace(/\D/g,'').slice(0,10); if(!phoneEl.value.startsWith('05')) phoneEl.value='05'+phoneEl.value.replace(/^05/,'')});
     function showErr(name,cond){const el=driverForm.querySelector(`[data-err="${name}"]`); if(!el)return; cond?el.classList.remove('hidden'):el.classList.add('hidden')}
-    function validateDriver(){const f=driverForm.elements; const errs={driverName:!f['driverName'].value.trim(),driverPhone:!/^05\d{8}$/.test(f['driverPhone'].value.trim()),driverId:!/^\d{10}$/.test(f['driverId'].value.trim()),region:!f['region'].value,licenseNo:!f['licenseNo'].value.trim(),licenseExpiry:!f['licenseExpiry'].value}; Object.entries(errs).forEach(([k,v])=>showErr(k,v)); return !Object.values(errs).some(Boolean)}
+    function validateDriver(){const f=driverForm.elements; const errs={driverName:!f['driverName'].value.trim(),password:!f['password'].value.trim(),driverPhone:!/^05\d{8}$/.test(f['driverPhone'].value.trim()),driverId:!/^\d{10}$/.test(f['driverId'].value.trim()),region:!f['region'].value,licenseNo:!f['licenseNo'].value.trim(),licenseExpiry:!f['licenseExpiry'].value}; Object.entries(errs).forEach(([k,v])=>showErr(k,v)); return !Object.values(errs).some(Boolean)}
     function serializeVehicles(){return Array.from(vehiclesWrap.querySelectorAll('[data-id]')).map(card=>{const get=n=>card.querySelector(`[name="${n}"]`).value; return {plate:get('plate'),model:get('model'),type:get('type'),capacityKg:get('capacityKg')}})}
-    function serializeDriver(){const fd=new FormData(driverForm); const obj=Object.fromEntries(fd.entries()); obj.vehicles=serializeVehicles(); return obj}
-    function renderPreview(data){const vs=(data.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>'; driverPreview.innerHTML=`<div class="text-sm"><div class="font-semibold text-waseela-primary mb-2">البيانات المحفوظة:</div><div><b>السائق:</b> ${data.driverName||'—'} — ${data.driverPhone||'—'}</div><div><b>هوية/إقامة:</b> ${data.driverId||'—'} — <b>المنطقة:</b> ${data.region||'—'}</div><div><b>الرخصة:</b> ${data.licenseNo||'—'} — <b>انتهاء:</b> ${data.licenseExpiry||'—'}</div><div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div><div class="mt-2"><b>ملاحظات:</b> ${data.notes||'—'}</div></div>`; driverPreview.classList.remove('hidden')}
-    function loadDriver(){const raw=localStorage.getItem('waseela_driver'); if(!raw){driverPreview.classList.add('hidden'); return} try{const data=JSON.parse(raw); renderPreview(data); vehiclesWrap.innerHTML=''; (data.vehicles||[]).forEach(v=>vehiclesWrap.appendChild(vehicleItem(v)))}catch(_){}}
-    loadDriver(); if(!vehiclesWrap.children.length) vehiclesWrap.appendChild(vehicleItem());
+    function serializeDriver(){const fd=new FormData(driverForm); const obj=Object.fromEntries(fd.entries()); obj.available=driverForm.elements['available'].checked; obj.vehicles=serializeVehicles(); obj.approved=obj.approved??false; return obj}
 
-    // رفع المستندات (Supabase اختياري)
+    // مخزن السائقين: مصفوفة
+    function getDrivers(){return JSON.parse(localStorage.getItem('waseela_drivers')||'[]')}
+    function saveDrivers(arr){localStorage.setItem('waseela_drivers',JSON.stringify(arr))}
+    function getDriverByPhone(phone){return getDrivers().find(d=>d.driverPhone===phone)}
+    function upsertDriver(d){
+      const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone);
+      if(i>=0){list[i]={...list[i],...d}} else {list.push({...d,approved:false,createdAt:new Date().toISOString()})}
+      saveDrivers(list);
+    }
+    function getActiveApprovedDriver(){return getDrivers().find(d=>d.approved && d.available)}
+
+    // رفع المستندات (اختياري)
     async function maybeUpload(file, pathPrefix){
-      if(!file||!SUPABASE_URL||!SUPABASE_ANON_KEY) return null; // بدون مفاتيح: نتخطى الرفع
+      if(!file||!SUPABASE_URL||!SUPABASE_ANON_KEY) return null;
       const fileName = `${pathPrefix}-${Date.now()}-${encodeURIComponent(file.name)}`;
       const url = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${fileName}`;
       const res = await fetch(url,{method:'POST',headers:{'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,'apikey':SUPABASE_ANON_KEY,'x-upsert':'true','Content-Type':file.type||'application/octet-stream'},body:file});
@@ -674,32 +681,237 @@
     driverForm.addEventListener('submit',async(e)=>{
       e.preventDefault(); if(!validateDriver()) return;
       const data=serializeDriver();
-      // محاولات رفع المستندات (إن فُعل Supabase)
-      const licFile = driverForm.elements['licenseImg'].files[0];
-      const regFile = driverForm.elements['vehicleReg'].files[0];
-      try{ data.licenseImgUrl = await maybeUpload(licFile,'license'); }catch(_){ data.licenseImgUrl = null }
-      try{ data.vehicleRegUrl = await maybeUpload(regFile,'vehicle'); }catch(_){ data.vehicleRegUrl = null }
+      // (اختياري) الرفع
+      const licFile = driverForm.elements['licenseImg']?.files?.[0];
+      const regFile = driverForm.elements['vehicleReg']?.files?.[0];
+      try{ data.licenseImgUrl = await maybeUpload(licFile,'license'); }catch(_){ }
+      try{ data.vehicleRegUrl = await maybeUpload(regFile,'vehicle'); }catch(_){ }
 
-      localStorage.setItem('waseela_driver',JSON.stringify(data));
-      driverSaved.classList.remove('hidden'); renderPreview(data);
-      setTimeout(()=>driverSaved.classList.add('hidden'),2500); renderProfile();
+      upsertDriver(data);
+      localStorage.setItem('waseela_auth',JSON.stringify({role:'driver',phone:data.driverPhone}));
+      renderAuthUI();
+      renderDriverPreview(data);
+      q('#driverSaved').classList.remove('hidden'); setTimeout(()=>q('#driverSaved').classList.add('hidden'),2200);
+      renderProfile(); renderAdminDrivers();
     });
 
-    document.getElementById('exportJson').addEventListener('click',()=>{
-      const driver=JSON.parse(localStorage.getItem('waseela_driver')||'{}'); const lastRide=JSON.parse(localStorage.getItem('waseela_last_ride')||'null');
-      const blob=new Blob([JSON.stringify({driver,lastRide},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_export.json'; a.click(); URL.revokeObjectURL(url);
-    });
-    document.getElementById('clearDriver').addEventListener('click',()=>{localStorage.removeItem('waseela_driver'); driverPreview.classList.add('hidden'); driverForm.reset(); vehiclesWrap.innerHTML=''; renderProfile()});
+    q('#exportJson').onclick=()=>{
+      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null'); const d=auth?.role==='driver'?getDriverByPhone(auth.phone):null;
+      const lastRide=JSON.parse(localStorage.getItem('waseela_last_ride')||'null');
+      const blob=new Blob([JSON.stringify({driver:d,lastRide},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_driver_export.json'; a.click(); URL.revokeObjectURL(url);
+    };
+    q('#clearDriver').onclick=()=>{driverForm.reset(); vehiclesWrap.innerHTML=''; vehiclesWrap.appendChild(vehicleItem()); q('#driverPreview').classList.add('hidden')}
 
+    function renderDriverPreview(data){
+      const vs=(data.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>';
+      q('#driverPreview').innerHTML=`<div class="text-sm">
+        <div class="font-semibold text-waseela-primary mb-2">البيانات المحفوظة:</div>
+        <div><b>السائق:</b> ${data.driverName} — ${data.driverPhone}</div>
+        <div><b>المنطقة:</b> ${data.region} — <b>التوفر:</b> ${data.available?'متاح':'غير متاح'}</div>
+        <div><b>الرخصة:</b> ${data.licenseNo} — <b>انتهاء:</b> ${data.licenseExpiry}</div>
+        <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div>
+      </div>`;
+      q('#driverPreview').classList.remove('hidden');
+    }
+
+    function loadDriverIntoForm(){
+      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
+      if(auth?.role==='driver'){ const d=getDriverByPhone(auth.phone); if(d){
+        driverForm.elements['driverPhone'].value=d.driverPhone;
+        driverForm.elements['driverName'].value=d.driverName||'';
+        driverForm.elements['driverId'].value=d.driverId||'';
+        driverForm.elements['region'].value=d.region||'';
+        driverForm.elements['licenseNo'].value=d.licenseNo||'';
+        driverForm.elements['licenseExpiry'].value=d.licenseExpiry||'';
+        driverForm.elements['password'].value=d.password||'';
+        driverForm.elements['available'].checked=!!d.available;
+        vehiclesWrap.innerHTML=''; (d.vehicles||[]).forEach(v=>vehiclesWrap.appendChild(vehicleItem(v)));
+        if(!vehiclesWrap.children.length) vehiclesWrap.appendChild(vehicleItem());
+        renderDriverPreview(d);
+      }}
+    }
+
+    /* ========= الحساب العام ========= */
+    function renderProfile(){
+      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
+      if(!auth){q('#profileInfo').textContent='غير مسجل دخولاً.';return}
+      if(auth.role==='driver'){
+        const d=getDriverByPhone(auth.phone);
+        if(!d){q('#profileInfo').textContent='لم يتم العثور على حساب السائق.';return}
+        const vs=(d.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>';
+        q('#profileInfo').innerHTML=`<div><b>الدور:</b> سائق</div>
+          <div><b>الاسم:</b> ${d.driverName} — <b>الهاتف:</b> ${d.driverPhone}</div>
+          <div><b>المنطقة:</b> ${d.region} • <b>الحالة:</b> ${d.approved?'معتمد':'بانتظار الاعتماد'}</div>
+          <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div>`;
+      }else if(auth.role==='admin'){
+        q('#profileInfo').innerHTML=`<div><b>الدور:</b> مدير</div><div>يمكنك إدارة السائقين والطلبات من لوحة الإدارة.</div>`;
+      }else{
+        q('#profileInfo').textContent='غير محدد.';
+      }
+    }
+    q('#exportAll').onclick=()=>{
+      const drivers=getDrivers(),orders=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'),wallet=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');
+      const blob=new Blob([JSON.stringify({drivers,orders,wallet,pricing:PRICING},null,2)],{type:'application/json'});
+      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_all_export.json'; a.click(); URL.revokeObjectURL(url);
+    };
+    q('#clearAll').onclick=()=>{if(confirm('سيتم مسح كل البيانات المحلية. هل أنت متأكد؟')){localStorage.clear(); location.reload()}}
+
+    /* ========= الدخول/الخروج ========= */
+    const authModal=q('#authModal'), authBadge=q('#authBadge'), loginBtn=q('#loginBtn'), logoutBtn=q('#logoutBtn');
+    const tabDriver=q('#tabDriver'), tabAdmin=q('#tabAdmin'), paneDriver=q('#paneDriver'), paneAdmin=q('#paneAdmin');
+    const openAuth=()=>authModal.classList.add('show'), closeAuth=()=>authModal.classList.remove('show');
+    q('#closeAuth').onclick=closeAuth;
+    loginBtn.onclick=openAuth;
+    logoutBtn.onclick=()=>{localStorage.removeItem('waseela_auth'); renderAuthUI(); showPage('home')};
+    tabDriver.onclick=()=>{tabDriver.classList.add('bg-gray-50');tabAdmin.classList.remove('bg-gray-50');paneDriver.classList.remove('hidden');paneAdmin.classList.add('hidden')}
+    tabAdmin.onclick=()=>{tabAdmin.classList.add('bg-gray-50');tabDriver.classList.remove('bg-gray-50');paneAdmin.classList.remove('hidden');paneDriver.classList.add('hidden')}
+
+    q('#doDriverLogin').onclick=()=>{
+      const phone=q('#loginPhone').value.trim(), pass=q('#loginPass').value.trim();
+      const d=getDriverByPhone(phone);
+      if(!/^05\d{8}$/.test(phone)) return toast('رقم الجوال غير صحيح');
+      if(!d) return toast('لا يوجد حساب بهذا الرقم. الرجاء التسجيل من صفحة السائق.');
+      if((d.password||'')!==pass) return toast('كلمة المرور غير صحيحة');
+      localStorage.setItem('waseela_auth',JSON.stringify({role:'driver',phone}));
+      closeAuth(); renderAuthUI(); showPage('driver'); loadDriverIntoForm();
+    };
+
+    q('#doAdminLogin').onclick=()=>{
+      const p=q('#adminPassInput').value;
+      const currentPass = localStorage.getItem('waseela_admin_pass') || 'admin123';
+      if(p!==currentPass) return toast('كلمة مرور المدير غير صحيحة');
+      localStorage.setItem('waseela_auth',JSON.stringify({role:'admin'}));
+      closeAuth(); renderAuthUI(); showPage('admin'); loadAdminPanels();
+    };
+
+    function renderAuthUI(){
+      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
+      if(auth){
+        authBadge.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+        loginBtn.classList.add('hidden');
+        if(auth.role==='driver'){authBadge.textContent=`سائق: ${auth.phone}`}
+        else if(auth.role==='admin'){authBadge.textContent='مدير النظام'}
+      }else{
+        authBadge.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+        loginBtn.classList.remove('hidden');
+      }
+      renderProfile();
+    }
+    renderAuthUI();
+
+    /* ========= لوحة الإدارة ========= */
+    function renderAdminDrivers(){
+      const box=q('#adminDrivers'); if(!box) return;
+      const arr=getDrivers(); box.innerHTML='';
+      if(!arr.length){box.innerHTML='<div class="text-gray-500">لا يوجد سائقون بعد.</div>'; return}
+      arr.forEach(d=>{
+        const el=document.createElement('div'); el.className='p-3 border rounded-xl flex flex-wrap items-center justify-between gap-2';
+        el.innerHTML=`
+          <div>
+            <div class="font-semibold">${d.driverName} — ${d.driverPhone} ${d.approved?'<span class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">معتمد</span>':'<span class="pill bg-yellow-50 text-yellow-700 border border-yellow-200">بانتظار</span>'}</div>
+            <div class="text-[12px] text-gray-600">منطقة: ${d.region} • توفُّر: ${d.available?'متاح':'غير متاح'} • مركبات: ${(d.vehicles||[]).length}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 rounded-lg border" data-approve="${d.driverPhone}">${d.approved?'إلغاء الاعتماد':'اعتماد'}</button>
+            <button class="px-3 py-1 rounded-lg border" data-toggle="${d.driverPhone}">${d.available?'تعطيل التوفر':'تفعيل التوفر'}</button>
+            <button class="px-3 py-1 rounded-lg border text-red-600" data-del="${d.driverPhone}">حذف</button>
+          </div>`;
+        box.appendChild(el);
+        el.querySelector('[data-approve]').onclick=()=>{
+          const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone); if(i>=0){list[i].approved=!list[i].approved; saveDrivers(list); renderAdminDrivers(); renderProfile()}
+        }
+        el.querySelector('[data-toggle]').onclick=()=>{
+          const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone); if(i>=0){list[i].available=!list[i].available; saveDrivers(list); renderAdminDrivers()}
+        }
+        el.querySelector('[data-del]').onclick=()=>{
+          if(!confirm('حذف السائق نهائيًا؟')) return;
+          saveDrivers(getDrivers().filter(x=>x.driverPhone!==d.driverPhone)); renderAdminDrivers();
+          const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null'); if(auth?.role==='driver' && auth.phone===d.driverPhone){localStorage.removeItem('waseela_auth'); renderAuthUI()}
+        }
+      });
+    }
+
+    function renderAdminOrders(){
+      const box=q('#adminOrders'); if(!box) return;
+      const arr=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'); box.innerHTML='';
+      if(!arr.length){box.innerHTML='<div class="text-gray-500">لا يوجد طلبات بعد.</div>'; return}
+      arr.forEach(o=>{
+        const el=document.createElement('div'); el.className='p-3 border rounded-xl flex flex-wrap items-center justify-between gap-2';
+        el.innerHTML=`
+          <div>
+            <div class="font-semibold">#${o.id} — ${o.price} ر.س</div>
+            <div class="text-[12px] text-gray-600">من ${o.pickupText||'—'} إلى ${o.dropText||'—'} • ${o.distanceRoadKm} كم • ${new Date(o.createdAt).toLocaleString('ar-SA')}</div>
+            ${o.assignedDriver?`<div class="text-[12px] text-emerald-700">السائق: ${o.assignedDriver.name} (${o.assignedDriver.phone})</div>`:''}
+          </div>
+          <div class="flex items-center gap-2">
+            <button class="px-3 py-1 rounded-lg border text-red-600" data-del="${o.id}">حذف</button>
+          </div>`;
+        box.appendChild(el);
+        el.querySelector('[data-del]').onclick=()=>{
+          const rest=arr.filter(x=>x.id!==o.id); localStorage.setItem('waseela_all_orders',JSON.stringify(rest)); renderAdminOrders();
+        }
+      });
+    }
+
+    function loadAdminPanels(){
+      // تعبئة الحقول
+      q('#admBase').value=PRICING.BASE; q('#admPerKm').value=PRICING.PER_KM; q('#admPerKg').value=PRICING.PER_KG;
+      q('#admPayLink').value=localStorage.getItem('waseela_payment_link')||'';
+      q('#admPass').value='';
+      renderAdminDrivers(); renderAdminOrders();
+    }
+
+    q('#savePricing').onclick=()=>{
+      PRICING={ BASE:Number(q('#admBase').value||0), PER_KM:Number(q('#admPerKm').value||0), PER_KG:Number(q('#admPerKg').value||0) };
+      localStorage.setItem('waseela_pricing',JSON.stringify(PRICING));
+      toast('تم حفظ التسعير'); updateEstimates();
+    };
+    q('#saveGeneral').onclick=()=>{
+      const link=q('#admPayLink').value.trim(); if(link) localStorage.setItem('waseela_payment_link',link); else localStorage.removeItem('waseela_payment_link');
+      const np=q('#admPass').value.trim(); if(np) localStorage.setItem('waseela_admin_pass',np);
+      toast('تم حفظ الإعدادات العامة');
+    };
+
+    q('#exportDriversCsv').onclick=()=>{
+      const arr=getDrivers();
+      const rows=[['الاسم','الجوال','المنطقة','معتمد','متاح','مركبات','تاريخ الإنشاء']];
+      arr.forEach(d=>rows.push([d.driverName,d.driverPhone,d.region,d.approved?'نعم':'لا',d.available?'نعم':'لا',(d.vehicles||[]).length,d.createdAt||'']));
+      downloadCSV(rows,'drivers.csv');
+    };
+    q('#exportOrdersCsv').onclick=()=>{
+      const arr=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]');
+      const rows=[['رقم','من','إلى','كم (طريق)','وزن','سعر','سائق','تاريخ']];
+      arr.forEach(o=>rows.push([o.id,o.pickupText,o.dropText,o.distanceRoadKm,o.weight,o.price,(o.assignedDriver?`${o.assignedDriver.name} (${o.assignedDriver.phone})`:'—'),o.createdAt]));
+      downloadCSV(rows,'orders.csv');
+    };
+    q('#clearOrders').onclick=()=>{if(confirm('مسح كل الطلبات؟')){localStorage.removeItem('waseela_all_orders'); renderAdminOrders()}}
+
+    function downloadCSV(rows,filename){
+      const csv = rows.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
+      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
+    }
+
+    /* ========= بدء التشغيل ========= */
     // فتح نموذج الحجز مباشرة على الشاشات الصغيرة
     if(window.matchMedia('(max-width:640px)').matches) openSheet();
-    document.getElementById('weight').addEventListener('input',updateEstimates);
+    weightEl.addEventListener('input',updateEstimates);
 
-    // روابط الدفع في التأكيد/المحفظة
+    // روابط الدفع
     (function initPaymentLinks(){
-      const payA=document.getElementById('payLink'); if(PAYMENT_LINK){payA.href=PAYMENT_LINK}else{payA.style.display='none'}
-      const payNow=document.getElementById('payNow'); if(PAYMENT_LINK){payNow.href=PAYMENT_LINK}else{payNow.style.display='none'}
+      const payA=q('#payLink'); if(PAYMENT_LINK){payA.href=PAYMENT_LINK}else{payA.style.display='none'}
+      const payNow=q('#payNow'); if(PAYMENT_LINK){payNow.href=PAYMENT_LINK}else{payNow.style.display='none'}
     })();
+
+    // تحميل بيانات السائق إذا كان مسجلاً
+    loadDriverIntoForm();
+
+    // إذا دخل المدير، عبّئ اللوحة
+    const authInit=JSON.parse(localStorage.getItem('waseela_auth')||'null');
+    if(authInit?.role==='admin'){loadAdminPanels()}
+
   </script>
 </body>
 </html>
