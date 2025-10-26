@@ -60,15 +60,15 @@ README (ملف إرشادي)
 // FILE: src/main.jsx
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import App from './App'
 import './styles/tailwind.css'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <App />
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>
 )
 
@@ -405,3 +405,243 @@ body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
 
 إذا رغبت، أعد لك: backend بسيط (Node + Socket.IO + REST), أو نسخة React Native, أو ملف ZIP جاهز للتشغيل.
 */
+
+
+---
+
+# إضافة باك-إند + موبايل + مواصفات (تنفيذ كامل بنسخة أولية)
+
+## 1) باك-إند (Node.js + Express + Socket.IO)
+
+**الملفات الأساسية** (موجودة أيضًا ضمن ملف ZIP المرفق للتنزيل):
+
+**backend/package.json**
+```json
+{
+  "name": "waseela-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "node src/index.js" },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "uuid": "^9.0.1"
+  }
+}
+```
+
+**backend/src/index.js**
+```js
+import express from 'express'
+import cors from 'cors'
+import { createServer } from 'http'
+import { Server } from 'socket.io'
+import { v4 as uuid } from 'uuid'
+
+const app = express()
+app.use(cors())
+app.use(express.json())
+
+const httpServer = createServer(app)
+const io = new Server(httpServer, { cors: { origin: '*' } })
+
+const rides = []
+const vehicles = [
+  { id:'V1', plate:'ل ص د 1234', model:'حوض 2019', driver:'d1' },
+  { id:'V2', plate:'ح ط ي 5678', model:'حوض 2021', driver:'d2' },
+]
+
+app.get('/', (req,res)=> res.json({name:'Waseela API', version:'1.0.0'}))
+app.post('/rides', (req,res)=>{ const r={ id:'R-'+Math.floor(Math.random()*9000+1000), status:'new', createdAt:Date.now(), ...req.body }; rides.push(r); io.emit('ride:new', r); res.json(r) })
+app.get('/rides', (req,res)=>{ const {status}=req.query; const data = status? rides.filter(r=>r.status===status): rides; res.json(data) })
+app.post('/rides/:id/accept', (req,res)=>{ const r=rides.find(x=>x.id===req.params.id); if(!r) return res.status(404).json({error:'not found'}); r.status='accepted'; io.emit('ride:update', r); res.json(r) })
+app.get('/vehicles', (req,res)=> res.json(vehicles))
+
+app.post('/payments/create-intent', (req,res)=>{ res.json({ id: uuid(), status:'requires_payment_method', provider:'stub' }) })
+
+io.on('connection', s=>{ s.emit('hello', {msg:'connected'}) })
+
+const PORT = process.env.PORT || 4000
+httpServer.listen(PORT, ()=> console.log('Waseela API running on', PORT))
+```
+
+> **ملاحظات**: هذا باك-إند أولي بذاكرة مؤقتة. للإنتاج، أضف قاعدة بيانات (Postgres + Prisma) ومصادقة JWT، وتسجيل أحداث السائق خطوة بخطوة.
+
+---
+
+## 2) واجهة ويب (React + Tailwind + Leaflet)
+
+تم تضمينها مسبقًا، وأضفنا عميل API بسيط للتكامل مع الباك-إند عبر `VITE_API_URL`.
+
+**frontend/src/services/api.js**
+```js
+const API = import.meta.env.VITE_API_URL || 'http://localhost:4000'
+export async function createRide(payload){ const r=await fetch(API+'/rides',{method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}); return await r.json() }
+export async function listOpenRides(){ const r=await fetch(API+'/rides?status=new'); return await r.json() }
+export async function acceptRide(id){ const r=await fetch(API+'/rides/'+id+'/accept',{method:'POST'}); return await r.json() }
+export async function listVehicles(){ const r=await fetch(API+'/vehicles'); return await r.json() }
+```
+
+---
+
+## 3) تطبيق جوال (Expo React Native)
+
+**mobile/package.json** و **mobile/App.js** مرفقان في ملف ZIP (نسخة أولية تسمح باختيار الدور وطلب رحلة نموذجيًا). يلزم ربطه بالـ API وإضافة تتبع الموقع بالخلفية لاحقًا.
+
+---
+
+## 4) مواصفات تقنية سريعة
+
+### ERD (مبدئي)
+```
+User(id, name, phone, role)
+Driver(id, userId->User.id, licenseNo, status)
+Vehicle(id, driverId->Driver.id, plate, model, capacityKg)
+Ride(id, userId->User.id, driverId->Driver.id?, pickup{lat,lng,name}, drop{lat,lng,name}, weightKg, price, status, createdAt)
+Payment(id, rideId->Ride.id, amount, provider, status, createdAt)
+```
+
+### نقاط API
+- `POST /rides` — إنشاء رحلة جديدة
+- `GET /rides?status=new` — عرض الرحلات الجديدة
+- `POST /rides/:id/accept` — قبول رحلة
+- `GET /vehicles` — قائمة مركبات الحوض
+- `POST /payments/create-intent` — تهيئة الدفع (stub)
+
+---
+
+## 5) الدفع (تهيئة جاهزة)
+- نقطة مبدئية مضافة. للتشغيل الفعلي أضف تكامل **HyperPay / mada / STC Pay** حسب الوثائق الرسمية.
+
+## 6) التشغيل المحلي السريع
+```bash
+# API
+cd backend && npm i && npm run dev
+# Frontend
+cd frontend && npm i && echo "VITE_API_URL=http://localhost:4000" > .env && npm run dev
+# Mobile (اختياري)
+cd mobile && npm i && npm start
+```
+
+---
+
+## 7) التحسينات المقترحة التالية
+- مصادقة JWT وRBAC للأدوار (راكب/سائق/إدارة)
+- قاعدة بيانات + Prisma وعمليات ترحيل
+- تتبع موقع السائق في الخلفية للموبايل
+- تسعير ديناميكي حسب المسافة والوزن والطلب
+- تكامل دفع فعلي وإصدار إيصالات
+- لوغين عبر OTP برسائل نصية
+
+
+
+---
+
+# دعم GitHub Pages (Tailwind + Vite)
+
+لضمان عمل التصميم على GitHub Pages، تمت إضافة/تعديل التالي:
+
+1) **استخدام HashRouter بدل BrowserRouter** لتفادي مشاكل المسارات على Pages.
+   - تم تعديل `src/main.jsx` لاستعمال `HashRouter`.
+
+2) **إضافة ملف إعداد Vite مع base**
+
+**vite.config.js**
+```js
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// غيّر repoName باسم مستودعك على GitHub
+const repoName = 'waseela'
+
+export default defineConfig({
+  plugins: [react()],
+  base: `/${repoName}/`
+})
+```
+
+> ملاحظة: غيّر قيمة `repoName` إلى اسم المستودع الفعلي الخاص بك.
+
+3) **حزمة النشر إلى صفحات GitHub (اختياري)**
+
+**frontend/package.json** — أضف سكربتات:
+```json
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "gh-pages -d dist"
+  },
+  "devDependencies": {
+    "vite": "^5.4.0",
+    "tailwindcss": "^3.4.10",
+    "postcss": "^8.4.47",
+    "autoprefixer": "^10.4.20",
+    "gh-pages": "^6.1.1",
+    "@vitejs/plugin-react": "^4.3.1"
+  }
+}
+```
+
+4) **Workflow تلقائي (بديل gh-pages):**
+أنشئ الملف التالي في جذر المشروع:
+
+**.github/workflows/deploy.yml**
+```yml
+name: Deploy Frontend to GitHub Pages
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: |
+          cd frontend
+          npm ci
+      - name: Build
+        run: |
+          cd frontend
+          npm run build
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+```
+
+5) **خطوات النشر اليدوي السريعة**
+```bash
+cd frontend
+npm i
+npm run build
+npx gh-pages -d dist
+```
+
+6) **تأكد من Tailwind**
+- استيراد `./styles/tailwind.css` موجود في `src/main.jsx` (صحيح).
+- البناء عبر `vite build` سيولّد CSS النهائي داخل `dist/assets`، وسيظهر التصميم عند فتح صفحة GitHub Pages.
+
+> إن ظهرت الصفحة "نص بلا تصميم" داخل GitHub (عرض ملف داخل المستودع)، فهذا طبيعي لأن GitHub يعرض **الملف** وليس **النسخة المبنية**. يجب فتح رابط **GitHub Pages** بعد البناء، مثل: `https://username.github.io/repoName/`.
