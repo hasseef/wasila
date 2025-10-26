@@ -1,0 +1,407 @@
+// Repo: waseela-pickup-app (single-file bundle showing project structure)
+
+/*
+README (ملف إرشادي)
+
+هذا مشروع مبدئي لتطبيق "وسيلة" مخصص لتشغيل سيارات الحوض (الونيتات). الهدف: تقديم قاعدة قوية واحترافية يمكنك البناء عليها.
+
+المحتوى المضمن هنا عبارة عن مجموعة ملفات مصدرية (JSX, CSS, mock API) يمكنك نسخها إلى مشروع React (Vite أو Create React App) وتشغيلها محلياً.
+
+المتطلبات:
+- Node.js 18+
+- npm أو yarn
+
+التثبيت والتشغيل السريع:
+1. أنشئ مشروع جديد (مثال باستخدام Vite):
+   npm create vite@latest waseela --template react
+   cd waseela
+2. انسخ الملفات من هذا المستند إلى مجلد src/ مع package.json المرفق
+3. ثبت الحزم:
+   npm install
+4. شغّل المشروع:
+   npm run dev
+
+ملاحظات تقنية:
+- الواجهة مبنية بـ React + Tailwind CSS (تصميم عصري وقابل للتخصيص)
+- الخريطة تستخدم Leaflet (يمكن استبدال Google Maps)
+- التواصل الحقيقي (real-time) مُصمَّم باستخدام Socket.IO (هنا يوجد mock)
+- تم تضمين ثلاث حسابات نموذجية: راكب (User), سائق حوض (Driver), إدارة (Admin)
+- شامل واجهات تسجيل دخول، لوحة حجز، تتبع السائق، قبول الرحلات من السائق، وإدارة المركبات
+
+*/
+
+// FILE: package.json
+{
+  "name": "waseela-pickup-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.9.0",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^4.2.1",
+    "socket.io-client": "^4.7.2",
+    "clsx": "^1.2.1"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "tailwindcss": "^4.2.1",
+    "postcss": "^8.4.21",
+    "autoprefixer": "^10.4.14"
+  }
+}
+
+// FILE: src/main.jsx
+import React from 'react'
+import { createRoot } from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import App from './App'
+import './styles/tailwind.css'
+
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <App />
+    </BrowserRouter>
+  </React.StrictMode>
+)
+
+// FILE: src/App.jsx
+import React from 'react'
+import { Routes, Route, Link, Navigate } from 'react-router-dom'
+import { AuthProvider, useAuth } from './lib/auth'
+import LoginPage from './pages/LoginPage'
+import UserDashboard from './pages/UserDashboard'
+import DriverDashboard from './pages/DriverDashboard'
+import AdminPanel from './pages/AdminPanel'
+import BookingPage from './pages/BookingPage'
+
+export default function App(){
+  return (
+    <AuthProvider>
+      <div className="min-h-screen bg-slate-50">
+        <header className="bg-white shadow-sm">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <Link to="/" className="font-bold text-xl">وسيلة - نظام تشغيل حوض</Link>
+            <nav className="space-x-3">
+              <Link to="/" className="text-slate-600">الرئيسية</Link>
+              <Link to="/booking" className="text-slate-600">حجز الحوض</Link>
+              <Link to="/driver" className="text-slate-600">لوحة السائق</Link>
+              <Link to="/admin" className="text-slate-600">لوحة الإدارة</Link>
+            </nav>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-6">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/booking" element={<Protected role="user"><BookingPage/></Protected>} />
+            <Route path="/user" element={<Protected role="user"><UserDashboard/></Protected>} />
+            <Route path="/driver" element={<Protected role="driver"><DriverDashboard/></Protected>} />
+            <Route path="/admin" element={<Protected role="admin"><AdminPanel/></Protected>} />
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </main>
+      </div>
+    </AuthProvider>
+  )
+}
+
+function Home(){
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      <section className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-2xl font-semibold">مرحبًا بك في وسيلة</h2>
+        <p className="mt-3 text-slate-700">تطبيق تشغيل سيارات الحوض — للحملات الصغيرة، نقل البضائع، ونقل المواد الزراعية والبناء.</p>
+        <div className="mt-4 flex gap-3">
+          <Link to="/login" className="px-4 py-2 bg-blue-600 text-white rounded">تسجيل / دخول</Link>
+          <Link to="/booking" className="px-4 py-2 border rounded">ابدأ حجز</Link>
+        </div>
+      </section>
+      <section className="bg-white p-6 rounded-lg shadow">
+        <h3 className="font-semibold">مميزات التطبيق</h3>
+        <ul className="list-disc mr-5 mt-3 text-slate-700">
+          <li>نظام حجز فوري وخيارات جدولة</li>
+          <li>لوحة سائق مخصصة لحوض (إدارة حمولة، أسعار لكل كيلومتر)</li>
+          <li>تعقب مباشر على الخريطة وتتبع الرحلات</li>
+          <li>لوحة إدارة لإدارة المركبات والسائقين والرحلات</li>
+        </ul>
+      </section>
+    </div>
+  )
+}
+
+function Protected({children, role}){
+  const { user } = useAuth()
+  if(!user) return <Navigate to="/login" />
+  if(role && user.role !== role) return <div className="p-6 bg-yellow-50 rounded">لا تملك صلاحية الوصول لهذه الصفحة.</div>
+  return children
+}
+
+// FILE: src/lib/auth.jsx
+import React, { createContext, useState, useContext } from 'react'
+
+const AuthContext = createContext()
+
+const initialUsers = [
+  { id: 'u1', name: 'عميل تجريبي', role: 'user' },
+  { id: 'd1', name: 'سائق حوض', role: 'driver' },
+  { id: 'a1', name: 'مدير النظام', role: 'admin' }
+]
+
+export function AuthProvider({children}){
+  const [user, setUser] = useState(null)
+  function loginAs(role){
+    const found = initialUsers.find(u=>u.role===role)
+    setUser(found)
+  }
+  function logout(){ setUser(null) }
+  return (
+    <AuthContext.Provider value={{user, loginAs, logout}}>
+      {children}
+    </AuthContext.Provider>
+  )
+}
+
+export function useAuth(){ return useContext(AuthContext) }
+
+// FILE: src/pages/LoginPage.jsx
+import React from 'react'
+import { useAuth } from '../lib/auth'
+
+export default function LoginPage(){
+  const { loginAs } = useAuth()
+  return (
+    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
+      <h2 className="text-xl font-semibold">تسجيل سريع (موديل)</h2>
+      <p className="mt-2 text-slate-600">اختر دورًا لتجربة الواجهات:</p>
+      <div className="mt-4 grid grid-cols-3 gap-3">
+        <button onClick={()=>loginAs('user')} className="py-2 bg-green-500 text-white rounded">راكب</button>
+        <button onClick={()=>loginAs('driver')} className="py-2 bg-indigo-500 text-white rounded">سائق حوض</button>
+        <button onClick={()=>loginAs('admin')} className="py-2 bg-red-500 text-white rounded">إدارة</button>
+      </div>
+      <p className="mt-4 text-xs text-slate-500">ملاحظة: هذه نسخة تجريبية محلية (بدون باكند حقيقي). للتكامل الحقيقي — استخدم Firebase/Auth server.</p>
+    </div>
+  )
+}
+
+// FILE: src/pages/BookingPage.jsx
+import React, { useState } from 'react'
+import MapPicker from '../widgets/MapPicker'
+import { useAuth } from '../lib/auth'
+import { mockCreateRide } from '../services/mockApi'
+
+export default function BookingPage(){
+  const { user } = useAuth()
+  const [pickup, setPickup] = useState(null)
+  const [drop, setDrop] = useState(null)
+  const [notes, setNotes] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [result, setResult] = useState(null)
+
+  async function handleRequest(){
+    setLoading(true)
+    const res = await mockCreateRide({pickup, drop, notes, user: user || {name: 'زائر'} })
+    setResult(res)
+    setLoading(false)
+  }
+
+  return (
+    <div className="grid md:grid-cols-2 gap-6">
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold">تفاصيل الحجز</h3>
+        <label className="block mt-3">موقع التحميل</label>
+        <div className="mt-2 h-48"><MapPicker value={pickup} onChange={setPickup} /></div>
+
+        <label className="block mt-3">موقع التفريغ</label>
+        <div className="mt-2 h-48"><MapPicker value={drop} onChange={setDrop} /></div>
+
+        <label className="block mt-3">ملاحظات</label>
+        <textarea value={notes} onChange={e=>setNotes(e.target.value)} className="w-full border p-2 rounded mt-1" rows={3} />
+
+        <div className="mt-4">
+          <button onClick={handleRequest} className="px-4 py-2 bg-blue-600 text-white rounded" disabled={loading}>حجز الحوض {loading? '...' : ''}</button>
+        </div>
+
+        {result && (
+          <div className="mt-4 p-3 bg-green-50 rounded">
+            <div>حجز تم إنشاؤه: <strong>{result.id}</strong></div>
+            <div>حالة: {result.status}</div>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-white p-4 rounded shadow">
+        <h3 className="font-semibold">معلومات عن الخدمة</h3>
+        <p className="mt-2 text-slate-700">سعر تقريبي: السعر الأساسي + سعر لكل كيلومتر. يمكن إضافة خصائص خاصة بحمولة الحوض (مثل مساحة الحمولة، وزن متوقع).</p>
+
+        <div className="mt-4">
+          <h4 className="font-medium">مثال على رحلة حية</h4>
+          <div className="mt-2 h-64">
+            {/* يمكن هنا تضمين خريطة تعرض تتبع السائق عند توفره */}
+            <MapPicker readOnly value={pickup||drop} />
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// FILE: src/widgets/MapPicker.jsx
+import React, { useEffect } from 'react'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import 'leaflet/dist/leaflet.css'
+import L from 'leaflet'
+
+// إصلاح أيقونة Leaflet الافتراضية في Vite
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
+})
+
+function Picker({value, onChange, readOnly}){
+  useMapEvents({
+    click(e){ if(readOnly) return; onChange({lat: e.latlng.lat, lng: e.latlng.lng}) }
+  })
+  return value ? <Marker position={[value.lat, value.lng]} /> : null
+}
+
+export default function MapPicker({value, onChange, readOnly}){
+  const center = value ? [value.lat, value.lng] : [24.7136, 46.6753] // وسط السعودية (رياض) كنقطة بداية
+  return (
+    <MapContainer center={center} zoom={13} style={{height:'100%', width:'100%'}}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <Picker value={value} onChange={onChange} readOnly={readOnly} />
+    </MapContainer>
+  )
+}
+
+// FILE: src/pages/DriverDashboard.jsx
+import React, { useState } from 'react'
+import { useAuth } from '../lib/auth'
+import { mockDriverRides } from '../services/mockApi'
+
+export default function DriverDashboard(){
+  const { user } = useAuth()
+  const [rides] = useState(mockDriverRides)
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h2 className="text-xl font-semibold">لوحة السائق</h2>
+      <p className="text-slate-600 mt-2">مرحبًا {user?.name || 'سائق'} — هذه الواجهة تعرض الرحلات المتاحة والحالية.</p>
+
+      <div className="mt-4">
+        {rides.map(r=> (
+          <div key={r.id} className="p-3 border rounded mb-3 flex justify-between items-center">
+            <div>
+              <div className="font-medium">رحلة: {r.id}</div>
+              <div className="text-sm text-slate-600">من: {r.pickup.name} — إلى: {r.drop.name}</div>
+            </div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1 bg-green-600 text-white rounded">قبول</button>
+              <button className="px-3 py-1 border rounded">تفاصيل</button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// FILE: src/pages/AdminPanel.jsx
+import React from 'react'
+import { mockVehicles } from '../services/mockApi'
+
+export default function AdminPanel(){
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
+      <p className="text-slate-600 mt-2">إدارة السائقين، المركبات، والأسعار.</p>
+
+      <div className="mt-4">
+        <h3 className="font-medium">قائمة المركبات</h3>
+        <div className="mt-2 space-y-3">
+          {mockVehicles.map(v=> (
+            <div key={v.id} className="p-3 border rounded flex justify-between items-center">
+              <div>
+                <div className="font-medium">{v.plate} — {v.model}</div>
+                <div className="text-sm text-slate-600">سائق: {v.driver}</div>
+              </div>
+              <div>
+                <button className="px-3 py-1 border rounded">تعديل</button>
+                <button className="px-3 py-1 ml-2 bg-red-600 text-white rounded">حذف</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// FILE: src/services/mockApi.js
+// API وهمي لتسهيل الاختبار المحلي
+export const mockDriverRides = [
+  { id: 'R-1001', pickup: {name: 'مستودع شمال'}, drop: {name: 'ورشة الجنوب'}, status: 'new' },
+  { id: 'R-1002', pickup: {name: 'مزرعة العائلة'}, drop: {name: 'سوق السبت'}, status: 'new' }
+]
+
+export const mockVehicles = [
+  { id: 'V1', plate: 'ل ص د 1234', model: 'حوض 2019', driver: 'سائق 1' },
+  { id: 'V2', plate: 'ح ط ي 5678', model: 'حوض 2021', driver: 'سائق 2' }
+]
+
+export async function mockCreateRide(payload){
+  // محاكاة استجابة باكند
+  await new Promise(r=>setTimeout(r, 800))
+  return { id: 'R-'+Math.floor(Math.random()*9000+1000), status: 'pending', ...payload }
+}
+
+// FILE: src/styles/tailwind.css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* إضافات بسيطة */
+body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+
+// FILE: src/index.html
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>وسيلة - تشغيل الحوض</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
+
+/*
+خاتمة قصيرة (باللغة العربية):
+هذه الحزمة تمثل نسخة أولية شاملة (MVP) لواجهة الويب لتطبيق "وسيلة". تشمل:
+- هيكلية صفحات رئيسية: تسجيل دخول، حجز، لوحة سائق، لوحة إدارة
+- وحدة خريطة بسيطة مع اختيار مواقع
+- API وهمي للتطوير المحلي
+
+أقترح للمراحل القادمة:
+1. ربط Auth حقيقي (Firebase/Auth0 أو نظام داخلي)
+2. باكند Node/Express أو NestJS مع قاعدة بيانات (Postgres أو MongoDB)
+3. تكامل دفع (HyperPay أو mada / STC Pay)
+4. نظام تسعير ديناميكي يعتمد على المسافة ووزن الحمولة
+5. تطبيق React Native للهواتف + استخدام native maps و background location
+6. اختبارات وحدة وتكامل CI/CD
+
+إذا رغبت، أعد لك: backend بسيط (Node + Socket.IO + REST), أو نسخة React Native, أو ملف ZIP جاهز للتشغيل.
+*/
