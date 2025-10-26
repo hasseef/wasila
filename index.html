@@ -1,647 +1,147 @@
-// Repo: waseela-pickup-app (single-file bundle showing project structure)
-
-/*
-README (ملف إرشادي)
-
-هذا مشروع مبدئي لتطبيق "وسيلة" مخصص لتشغيل سيارات الحوض (الونيتات). الهدف: تقديم قاعدة قوية واحترافية يمكنك البناء عليها.
-
-المحتوى المضمن هنا عبارة عن مجموعة ملفات مصدرية (JSX, CSS, mock API) يمكنك نسخها إلى مشروع React (Vite أو Create React App) وتشغيلها محلياً.
-
-المتطلبات:
-- Node.js 18+
-- npm أو yarn
-
-التثبيت والتشغيل السريع:
-1. أنشئ مشروع جديد (مثال باستخدام Vite):
-   npm create vite@latest waseela --template react
-   cd waseela
-2. انسخ الملفات من هذا المستند إلى مجلد src/ مع package.json المرفق
-3. ثبت الحزم:
-   npm install
-4. شغّل المشروع:
-   npm run dev
-
-ملاحظات تقنية:
-- الواجهة مبنية بـ React + Tailwind CSS (تصميم عصري وقابل للتخصيص)
-- الخريطة تستخدم Leaflet (يمكن استبدال Google Maps)
-- التواصل الحقيقي (real-time) مُصمَّم باستخدام Socket.IO (هنا يوجد mock)
-- تم تضمين ثلاث حسابات نموذجية: راكب (User), سائق حوض (Driver), إدارة (Admin)
-- شامل واجهات تسجيل دخول، لوحة حجز، تتبع السائق، قبول الرحلات من السائق، وإدارة المركبات
-
-*/
-
-// FILE: package.json
-{
-  "name": "waseela-pickup-app",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.9.0",
-    "leaflet": "^1.9.4",
-    "react-leaflet": "^4.2.1",
-    "socket.io-client": "^4.7.2",
-    "clsx": "^1.2.1"
-  },
-  "devDependencies": {
-    "vite": "^5.0.0",
-    "tailwindcss": "^4.2.1",
-    "postcss": "^8.4.21",
-    "autoprefixer": "^10.4.14"
-  }
-}
-
-// FILE: src/main.jsx
-import React from 'react'
-import { createRoot } from 'react-dom/client'
-import { HashRouter } from 'react-router-dom'
-import App from './App'
-import './styles/tailwind.css'
-
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <HashRouter>
-      <App />
-    </HashRouter>
-  </React.StrictMode>
-)
-
-// FILE: src/App.jsx
-import React from 'react'
-import { Routes, Route, Link, Navigate } from 'react-router-dom'
-import { AuthProvider, useAuth } from './lib/auth'
-import LoginPage from './pages/LoginPage'
-import UserDashboard from './pages/UserDashboard'
-import DriverDashboard from './pages/DriverDashboard'
-import AdminPanel from './pages/AdminPanel'
-import BookingPage from './pages/BookingPage'
-
-export default function App(){
-  return (
-    <AuthProvider>
-      <div className="min-h-screen bg-slate-50">
-        <header className="bg-white shadow-sm">
-          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-            <Link to="/" className="font-bold text-xl">وسيلة - نظام تشغيل حوض</Link>
-            <nav className="space-x-3">
-              <Link to="/" className="text-slate-600">الرئيسية</Link>
-              <Link to="/booking" className="text-slate-600">حجز الحوض</Link>
-              <Link to="/driver" className="text-slate-600">لوحة السائق</Link>
-              <Link to="/admin" className="text-slate-600">لوحة الإدارة</Link>
-            </nav>
-          </div>
-        </header>
-
-        <main className="container mx-auto px-4 py-6">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/booking" element={<Protected role="user"><BookingPage/></Protected>} />
-            <Route path="/user" element={<Protected role="user"><UserDashboard/></Protected>} />
-            <Route path="/driver" element={<Protected role="driver"><DriverDashboard/></Protected>} />
-            <Route path="/admin" element={<Protected role="admin"><AdminPanel/></Protected>} />
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </main>
-      </div>
-    </AuthProvider>
-  )
-}
-
-function Home(){
-  return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <section className="bg-white p-6 rounded-lg shadow">
-        <h2 className="text-2xl font-semibold">مرحبًا بك في وسيلة</h2>
-        <p className="mt-3 text-slate-700">تطبيق تشغيل سيارات الحوض — للحملات الصغيرة، نقل البضائع، ونقل المواد الزراعية والبناء.</p>
-        <div className="mt-4 flex gap-3">
-          <Link to="/login" className="px-4 py-2 bg-blue-600 text-white rounded">تسجيل / دخول</Link>
-          <Link to="/booking" className="px-4 py-2 border rounded">ابدأ حجز</Link>
-        </div>
-      </section>
-      <section className="bg-white p-6 rounded-lg shadow">
-        <h3 className="font-semibold">مميزات التطبيق</h3>
-        <ul className="list-disc mr-5 mt-3 text-slate-700">
-          <li>نظام حجز فوري وخيارات جدولة</li>
-          <li>لوحة سائق مخصصة لحوض (إدارة حمولة، أسعار لكل كيلومتر)</li>
-          <li>تعقب مباشر على الخريطة وتتبع الرحلات</li>
-          <li>لوحة إدارة لإدارة المركبات والسائقين والرحلات</li>
-        </ul>
-      </section>
-    </div>
-  )
-}
-
-function Protected({children, role}){
-  const { user } = useAuth()
-  if(!user) return <Navigate to="/login" />
-  if(role && user.role !== role) return <div className="p-6 bg-yellow-50 rounded">لا تملك صلاحية الوصول لهذه الصفحة.</div>
-  return children
-}
-
-// FILE: src/lib/auth.jsx
-import React, { createContext, useState, useContext } from 'react'
-
-const AuthContext = createContext()
-
-const initialUsers = [
-  { id: 'u1', name: 'عميل تجريبي', role: 'user' },
-  { id: 'd1', name: 'سائق حوض', role: 'driver' },
-  { id: 'a1', name: 'مدير النظام', role: 'admin' }
-]
-
-export function AuthProvider({children}){
-  const [user, setUser] = useState(null)
-  function loginAs(role){
-    const found = initialUsers.find(u=>u.role===role)
-    setUser(found)
-  }
-  function logout(){ setUser(null) }
-  return (
-    <AuthContext.Provider value={{user, loginAs, logout}}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth(){ return useContext(AuthContext) }
-
-// FILE: src/pages/LoginPage.jsx
-import React from 'react'
-import { useAuth } from '../lib/auth'
-
-export default function LoginPage(){
-  const { loginAs } = useAuth()
-  return (
-    <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
-      <h2 className="text-xl font-semibold">تسجيل سريع (موديل)</h2>
-      <p className="mt-2 text-slate-600">اختر دورًا لتجربة الواجهات:</p>
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <button onClick={()=>loginAs('user')} className="py-2 bg-green-500 text-white rounded">راكب</button>
-        <button onClick={()=>loginAs('driver')} className="py-2 bg-indigo-500 text-white rounded">سائق حوض</button>
-        <button onClick={()=>loginAs('admin')} className="py-2 bg-red-500 text-white rounded">إدارة</button>
-      </div>
-      <p className="mt-4 text-xs text-slate-500">ملاحظة: هذه نسخة تجريبية محلية (بدون باكند حقيقي). للتكامل الحقيقي — استخدم Firebase/Auth server.</p>
-    </div>
-  )
-}
-
-// FILE: src/pages/BookingPage.jsx
-import React, { useState } from 'react'
-import MapPicker from '../widgets/MapPicker'
-import { useAuth } from '../lib/auth'
-import { mockCreateRide } from '../services/mockApi'
-
-export default function BookingPage(){
-  const { user } = useAuth()
-  const [pickup, setPickup] = useState(null)
-  const [drop, setDrop] = useState(null)
-  const [notes, setNotes] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState(null)
-
-  async function handleRequest(){
-    setLoading(true)
-    const res = await mockCreateRide({pickup, drop, notes, user: user || {name: 'زائر'} })
-    setResult(res)
-    setLoading(false)
-  }
-
-  return (
-    <div className="grid md:grid-cols-2 gap-6">
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold">تفاصيل الحجز</h3>
-        <label className="block mt-3">موقع التحميل</label>
-        <div className="mt-2 h-48"><MapPicker value={pickup} onChange={setPickup} /></div>
-
-        <label className="block mt-3">موقع التفريغ</label>
-        <div className="mt-2 h-48"><MapPicker value={drop} onChange={setDrop} /></div>
-
-        <label className="block mt-3">ملاحظات</label>
-        <textarea value={notes} onChange={e=>setNotes(e.target.value)} className="w-full border p-2 rounded mt-1" rows={3} />
-
-        <div className="mt-4">
-          <button onClick={handleRequest} className="px-4 py-2 bg-blue-600 text-white rounded" disabled={loading}>حجز الحوض {loading? '...' : ''}</button>
-        </div>
-
-        {result && (
-          <div className="mt-4 p-3 bg-green-50 rounded">
-            <div>حجز تم إنشاؤه: <strong>{result.id}</strong></div>
-            <div>حالة: {result.status}</div>
-          </div>
-        )}
-      </div>
-
-      <div className="bg-white p-4 rounded shadow">
-        <h3 className="font-semibold">معلومات عن الخدمة</h3>
-        <p className="mt-2 text-slate-700">سعر تقريبي: السعر الأساسي + سعر لكل كيلومتر. يمكن إضافة خصائص خاصة بحمولة الحوض (مثل مساحة الحمولة، وزن متوقع).</p>
-
-        <div className="mt-4">
-          <h4 className="font-medium">مثال على رحلة حية</h4>
-          <div className="mt-2 h-64">
-            {/* يمكن هنا تضمين خريطة تعرض تتبع السائق عند توفره */}
-            <MapPicker readOnly value={pickup||drop} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// FILE: src/widgets/MapPicker.jsx
-import React, { useEffect } from 'react'
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
-import 'leaflet/dist/leaflet.css'
-import L from 'leaflet'
-
-// إصلاح أيقونة Leaflet الافتراضية في Vite
-delete L.Icon.Default.prototype._getIconUrl
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
-})
-
-function Picker({value, onChange, readOnly}){
-  useMapEvents({
-    click(e){ if(readOnly) return; onChange({lat: e.latlng.lat, lng: e.latlng.lng}) }
-  })
-  return value ? <Marker position={[value.lat, value.lng]} /> : null
-}
-
-export default function MapPicker({value, onChange, readOnly}){
-  const center = value ? [value.lat, value.lng] : [24.7136, 46.6753] // وسط السعودية (رياض) كنقطة بداية
-  return (
-    <MapContainer center={center} zoom={13} style={{height:'100%', width:'100%'}}>
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <Picker value={value} onChange={onChange} readOnly={readOnly} />
-    </MapContainer>
-  )
-}
-
-// FILE: src/pages/DriverDashboard.jsx
-import React, { useState } from 'react'
-import { useAuth } from '../lib/auth'
-import { mockDriverRides } from '../services/mockApi'
-
-export default function DriverDashboard(){
-  const { user } = useAuth()
-  const [rides] = useState(mockDriverRides)
-
-  return (
-    <div className="bg-white p-4 rounded shadow">
-      <h2 className="text-xl font-semibold">لوحة السائق</h2>
-      <p className="text-slate-600 mt-2">مرحبًا {user?.name || 'سائق'} — هذه الواجهة تعرض الرحلات المتاحة والحالية.</p>
-
-      <div className="mt-4">
-        {rides.map(r=> (
-          <div key={r.id} className="p-3 border rounded mb-3 flex justify-between items-center">
-            <div>
-              <div className="font-medium">رحلة: {r.id}</div>
-              <div className="text-sm text-slate-600">من: {r.pickup.name} — إلى: {r.drop.name}</div>
-            </div>
-            <div className="flex gap-2">
-              <button className="px-3 py-1 bg-green-600 text-white rounded">قبول</button>
-              <button className="px-3 py-1 border rounded">تفاصيل</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// FILE: src/pages/AdminPanel.jsx
-import React from 'react'
-import { mockVehicles } from '../services/mockApi'
-
-export default function AdminPanel(){
-  return (
-    <div className="bg-white p-4 rounded shadow">
-      <h2 className="text-xl font-semibold">لوحة الإدارة</h2>
-      <p className="text-slate-600 mt-2">إدارة السائقين، المركبات، والأسعار.</p>
-
-      <div className="mt-4">
-        <h3 className="font-medium">قائمة المركبات</h3>
-        <div className="mt-2 space-y-3">
-          {mockVehicles.map(v=> (
-            <div key={v.id} className="p-3 border rounded flex justify-between items-center">
-              <div>
-                <div className="font-medium">{v.plate} — {v.model}</div>
-                <div className="text-sm text-slate-600">سائق: {v.driver}</div>
-              </div>
-              <div>
-                <button className="px-3 py-1 border rounded">تعديل</button>
-                <button className="px-3 py-1 ml-2 bg-red-600 text-white rounded">حذف</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// FILE: src/services/mockApi.js
-// API وهمي لتسهيل الاختبار المحلي
-export const mockDriverRides = [
-  { id: 'R-1001', pickup: {name: 'مستودع شمال'}, drop: {name: 'ورشة الجنوب'}, status: 'new' },
-  { id: 'R-1002', pickup: {name: 'مزرعة العائلة'}, drop: {name: 'سوق السبت'}, status: 'new' }
-]
-
-export const mockVehicles = [
-  { id: 'V1', plate: 'ل ص د 1234', model: 'حوض 2019', driver: 'سائق 1' },
-  { id: 'V2', plate: 'ح ط ي 5678', model: 'حوض 2021', driver: 'سائق 2' }
-]
-
-export async function mockCreateRide(payload){
-  // محاكاة استجابة باكند
-  await new Promise(r=>setTimeout(r, 800))
-  return { id: 'R-'+Math.floor(Math.random()*9000+1000), status: 'pending', ...payload }
-}
-
-// FILE: src/styles/tailwind.css
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-/* إضافات بسيطة */
-body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-
-// FILE: src/index.html
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>وسيلة - تشغيل الحوض</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>وسيلة - تشغيل سيارات الحوض</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Leaflet (خريطة) -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    body {
+      font-family: "Tajawal", sans-serif;
+      background-color: #f8fafc;
+    }
+    #map {
+      height: 300px;
+      border-radius: 0.5rem;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Header -->
+  <header class="bg-white shadow-md p-4">
+    <div class="container mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold text-blue-700">وسيلة</h1>
+      <nav class="space-x-3 [direction:ltr]">
+        <a href="#home" class="text-gray-600 hover:text-blue-600">الرئيسية</a>
+        <a href="#booking" class="text-gray-600 hover:text-blue-600">الحجز</a>
+        <a href="#about" class="text-gray-600 hover:text-blue-600">عن وسيلة</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main id="home" class="flex-grow container mx-auto p-6 space-y-10">
+
+    <!-- Hero -->
+    <section class="bg-white p-6 rounded-lg shadow">
+      <h2 class="text-2xl font-semibold text-gray-800">مرحبًا بك في وسيلة</h2>
+      <p class="mt-3 text-gray-600">
+        تطبيق وسيلة يتيح لك طلب سيارات الحوض (الونيتات) لنقل البضائع والمواد
+        بأمان وسرعة في جميع مناطق المملكة.
+      </p>
+      <div class="mt-5">
+        <a href="#booking"
+           class="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+          ابدأ الحجز الآن
+        </a>
+      </div>
+    </section>
+
+    <!-- Booking Form -->
+    <section id="booking" class="bg-white p-6 rounded-lg shadow">
+      <h3 class="text-xl font-semibold mb-4">حجز حوض</h3>
+
+      <label class="block mt-2 font-medium text-gray-700">موقع التحميل:</label>
+      <input id="pickup" type="text"
+             placeholder="أدخل موقع التحميل"
+             class="w-full border p-2 rounded mt-1"/>
+
+      <label class="block mt-4 font-medium text-gray-700">موقع التفريغ:</label>
+      <input id="drop" type="text"
+             placeholder="أدخل موقع التفريغ"
+             class="w-full border p-2 rounded mt-1"/>
+
+      <label class="block mt-4 font-medium text-gray-700">وزن الحمولة (كجم):</label>
+      <input id="weight" type="number"
+             placeholder="مثلاً 500"
+             class="w-full border p-2 rounded mt-1"/>
+
+      <label class="block mt-4 font-medium text-gray-700">ملاحظات:</label>
+      <textarea id="notes" rows="3"
+                placeholder="ملاحظات إضافية..."
+                class="w-full border p-2 rounded mt-1"></textarea>
+
+      <button id="bookBtn"
+              class="mt-5 px-6 py-3 bg-green-600 text-white rounded hover:bg-green-700 transition w-full">
+        تأكيد الحجز
+      </button>
+
+      <div id="result" class="mt-4 hidden bg-green-50 text-green-800 p-3 rounded"></div>
+
+      <div id="map" class="mt-6"></div>
+    </section>
+
+    <!-- About -->
+    <section id="about" class="bg-white p-6 rounded-lg shadow">
+      <h3 class="text-xl font-semibold mb-2">عن التطبيق</h3>
+      <p class="text-gray-600">
+        وسيلة هو نظام وطني لتشغيل سيارات الحوض يعتمد على التقنية والسرعة
+        في تقديم الخدمة، مع شفافية في الأسعار وإمكانية تتبع السائقين.
+      </p>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-gray-100 p-4 text-center text-sm text-gray-500">
+    © 2025 وسيلة - جميع الحقوق محفوظة
+  </footer>
+
+  <!-- JS -->
+  <script>
+    // تهيئة الخريطة
+    const map = L.map('map').setView([24.7136, 46.6753], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+
+    let marker;
+    map.on('click', function(e) {
+      if (marker) marker.remove();
+      marker = L.marker(e.latlng).addTo(map);
+    });
+
+    // نموذج الحجز
+    const bookBtn = document.getElementById("bookBtn");
+    const result = document.getElementById("result");
+
+    bookBtn.addEventListener("click", () => {
+      const pickup = document.getElementById("pickup").value;
+      const drop = document.getElementById("drop").value;
+      const weight = document.getElementById("weight").value;
+      const notes = document.getElementById("notes").value;
+
+      if (!pickup || !drop) {
+        alert("يرجى إدخال مواقع التحميل والتفريغ");
+        return;
+      }
+
+      const id = "R-" + Math.floor(Math.random() * 9000 + 1000);
+      result.textContent = `تم إنشاء الحجز بنجاح! رقم الحجز: ${id}`;
+      result.classList.remove("hidden");
+    });
+  </script>
+
+</body>
 </html>
-
-/*
-خاتمة قصيرة (باللغة العربية):
-هذه الحزمة تمثل نسخة أولية شاملة (MVP) لواجهة الويب لتطبيق "وسيلة". تشمل:
-- هيكلية صفحات رئيسية: تسجيل دخول، حجز، لوحة سائق، لوحة إدارة
-- وحدة خريطة بسيطة مع اختيار مواقع
-- API وهمي للتطوير المحلي
-
-أقترح للمراحل القادمة:
-1. ربط Auth حقيقي (Firebase/Auth0 أو نظام داخلي)
-2. باكند Node/Express أو NestJS مع قاعدة بيانات (Postgres أو MongoDB)
-3. تكامل دفع (HyperPay أو mada / STC Pay)
-4. نظام تسعير ديناميكي يعتمد على المسافة ووزن الحمولة
-5. تطبيق React Native للهواتف + استخدام native maps و background location
-6. اختبارات وحدة وتكامل CI/CD
-
-إذا رغبت، أعد لك: backend بسيط (Node + Socket.IO + REST), أو نسخة React Native, أو ملف ZIP جاهز للتشغيل.
-*/
-
-
----
-
-# إضافة باك-إند + موبايل + مواصفات (تنفيذ كامل بنسخة أولية)
-
-## 1) باك-إند (Node.js + Express + Socket.IO)
-
-**الملفات الأساسية** (موجودة أيضًا ضمن ملف ZIP المرفق للتنزيل):
-
-**backend/package.json**
-```json
-{
-  "name": "waseela-backend",
-  "version": "1.0.0",
-  "private": true,
-  "type": "module",
-  "scripts": { "dev": "node src/index.js" },
-  "dependencies": {
-    "cors": "^2.8.5",
-    "express": "^4.19.2",
-    "socket.io": "^4.7.5",
-    "uuid": "^9.0.1"
-  }
-}
-```
-
-**backend/src/index.js**
-```js
-import express from 'express'
-import cors from 'cors'
-import { createServer } from 'http'
-import { Server } from 'socket.io'
-import { v4 as uuid } from 'uuid'
-
-const app = express()
-app.use(cors())
-app.use(express.json())
-
-const httpServer = createServer(app)
-const io = new Server(httpServer, { cors: { origin: '*' } })
-
-const rides = []
-const vehicles = [
-  { id:'V1', plate:'ل ص د 1234', model:'حوض 2019', driver:'d1' },
-  { id:'V2', plate:'ح ط ي 5678', model:'حوض 2021', driver:'d2' },
-]
-
-app.get('/', (req,res)=> res.json({name:'Waseela API', version:'1.0.0'}))
-app.post('/rides', (req,res)=>{ const r={ id:'R-'+Math.floor(Math.random()*9000+1000), status:'new', createdAt:Date.now(), ...req.body }; rides.push(r); io.emit('ride:new', r); res.json(r) })
-app.get('/rides', (req,res)=>{ const {status}=req.query; const data = status? rides.filter(r=>r.status===status): rides; res.json(data) })
-app.post('/rides/:id/accept', (req,res)=>{ const r=rides.find(x=>x.id===req.params.id); if(!r) return res.status(404).json({error:'not found'}); r.status='accepted'; io.emit('ride:update', r); res.json(r) })
-app.get('/vehicles', (req,res)=> res.json(vehicles))
-
-app.post('/payments/create-intent', (req,res)=>{ res.json({ id: uuid(), status:'requires_payment_method', provider:'stub' }) })
-
-io.on('connection', s=>{ s.emit('hello', {msg:'connected'}) })
-
-const PORT = process.env.PORT || 4000
-httpServer.listen(PORT, ()=> console.log('Waseela API running on', PORT))
-```
-
-> **ملاحظات**: هذا باك-إند أولي بذاكرة مؤقتة. للإنتاج، أضف قاعدة بيانات (Postgres + Prisma) ومصادقة JWT، وتسجيل أحداث السائق خطوة بخطوة.
-
----
-
-## 2) واجهة ويب (React + Tailwind + Leaflet)
-
-تم تضمينها مسبقًا، وأضفنا عميل API بسيط للتكامل مع الباك-إند عبر `VITE_API_URL`.
-
-**frontend/src/services/api.js**
-```js
-const API = import.meta.env.VITE_API_URL || 'http://localhost:4000'
-export async function createRide(payload){ const r=await fetch(API+'/rides',{method:'POST',headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload)}); return await r.json() }
-export async function listOpenRides(){ const r=await fetch(API+'/rides?status=new'); return await r.json() }
-export async function acceptRide(id){ const r=await fetch(API+'/rides/'+id+'/accept',{method:'POST'}); return await r.json() }
-export async function listVehicles(){ const r=await fetch(API+'/vehicles'); return await r.json() }
-```
-
----
-
-## 3) تطبيق جوال (Expo React Native)
-
-**mobile/package.json** و **mobile/App.js** مرفقان في ملف ZIP (نسخة أولية تسمح باختيار الدور وطلب رحلة نموذجيًا). يلزم ربطه بالـ API وإضافة تتبع الموقع بالخلفية لاحقًا.
-
----
-
-## 4) مواصفات تقنية سريعة
-
-### ERD (مبدئي)
-```
-User(id, name, phone, role)
-Driver(id, userId->User.id, licenseNo, status)
-Vehicle(id, driverId->Driver.id, plate, model, capacityKg)
-Ride(id, userId->User.id, driverId->Driver.id?, pickup{lat,lng,name}, drop{lat,lng,name}, weightKg, price, status, createdAt)
-Payment(id, rideId->Ride.id, amount, provider, status, createdAt)
-```
-
-### نقاط API
-- `POST /rides` — إنشاء رحلة جديدة
-- `GET /rides?status=new` — عرض الرحلات الجديدة
-- `POST /rides/:id/accept` — قبول رحلة
-- `GET /vehicles` — قائمة مركبات الحوض
-- `POST /payments/create-intent` — تهيئة الدفع (stub)
-
----
-
-## 5) الدفع (تهيئة جاهزة)
-- نقطة مبدئية مضافة. للتشغيل الفعلي أضف تكامل **HyperPay / mada / STC Pay** حسب الوثائق الرسمية.
-
-## 6) التشغيل المحلي السريع
-```bash
-# API
-cd backend && npm i && npm run dev
-# Frontend
-cd frontend && npm i && echo "VITE_API_URL=http://localhost:4000" > .env && npm run dev
-# Mobile (اختياري)
-cd mobile && npm i && npm start
-```
-
----
-
-## 7) التحسينات المقترحة التالية
-- مصادقة JWT وRBAC للأدوار (راكب/سائق/إدارة)
-- قاعدة بيانات + Prisma وعمليات ترحيل
-- تتبع موقع السائق في الخلفية للموبايل
-- تسعير ديناميكي حسب المسافة والوزن والطلب
-- تكامل دفع فعلي وإصدار إيصالات
-- لوغين عبر OTP برسائل نصية
-
-
-
----
-
-# دعم GitHub Pages (Tailwind + Vite)
-
-لضمان عمل التصميم على GitHub Pages، تمت إضافة/تعديل التالي:
-
-1) **استخدام HashRouter بدل BrowserRouter** لتفادي مشاكل المسارات على Pages.
-   - تم تعديل `src/main.jsx` لاستعمال `HashRouter`.
-
-2) **إضافة ملف إعداد Vite مع base**
-
-**vite.config.js**
-```js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-// غيّر repoName باسم مستودعك على GitHub
-const repoName = 'waseela'
-
-export default defineConfig({
-  plugins: [react()],
-  base: `/${repoName}/`
-})
-```
-
-> ملاحظة: غيّر قيمة `repoName` إلى اسم المستودع الفعلي الخاص بك.
-
-3) **حزمة النشر إلى صفحات GitHub (اختياري)**
-
-**frontend/package.json** — أضف سكربتات:
-```json
-{
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "deploy": "gh-pages -d dist"
-  },
-  "devDependencies": {
-    "vite": "^5.4.0",
-    "tailwindcss": "^3.4.10",
-    "postcss": "^8.4.47",
-    "autoprefixer": "^10.4.20",
-    "gh-pages": "^6.1.1",
-    "@vitejs/plugin-react": "^4.3.1"
-  }
-}
-```
-
-4) **Workflow تلقائي (بديل gh-pages):**
-أنشئ الملف التالي في جذر المشروع:
-
-**.github/workflows/deploy.yml**
-```yml
-name: Deploy Frontend to GitHub Pages
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - name: Install deps
-        run: |
-          cd frontend
-          npm ci
-      - name: Build
-        run: |
-          cd frontend
-          npm run build
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: frontend/dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-5) **خطوات النشر اليدوي السريعة**
-```bash
-cd frontend
-npm i
-npm run build
-npx gh-pages -d dist
-```
-
-6) **تأكد من Tailwind**
-- استيراد `./styles/tailwind.css` موجود في `src/main.jsx` (صحيح).
-- البناء عبر `vite build` سيولّد CSS النهائي داخل `dist/assets`، وسيظهر التصميم عند فتح صفحة GitHub Pages.
-
-> إن ظهرت الصفحة "نص بلا تصميم" داخل GitHub (عرض ملف داخل المستودع)، فهذا طبيعي لأن GitHub يعرض **الملف** وليس **النسخة المبنية**. يجب فتح رابط **GitHub Pages** بعد البناء، مثل: `https://username.github.io/repoName/`.
