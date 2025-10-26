@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#1B6AA5" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>وسيلة — تطبيق سيارات الحوض</title>
+  <title>وسيلة — اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة</title>
 
   <!-- خط عربي -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
     html,body { height:100%; background:#f7fafc }
     body { font-family:"Tajawal",sans-serif }
     #app { min-height:100%; padding-bottom: 64px } /* مساحة للتاب بار */
-    #map { height: calc(100dvh - 56px - 16px - 180px); border-radius: 16px; }
+    #map { height: calc(100dvh - 56px - 16px - 210px); border-radius: 16px; }
     .grad-primary{ background: linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%) }
     .safe-top{ padding-top: env(safe-area-inset-top) }
     .safe-bottom{ padding-bottom: env(safe-area-inset-bottom) }
@@ -43,9 +43,8 @@
     .drag-handle{ width: 40px; height: 4px; background:#cbd5e1; border-radius: 999px; margin: 8px auto }
     .tabbar{ height:56px }
     .pill { padding:2px 8px; border-radius:999px; font-size:11px; }
-    .modal{position:fixed; inset:0; background:rgba(15,23,42,.45); display:none; z-index:60}
-    .modal-card{max-height:85dvh; overflow:auto}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;border:0;clip:rect(0,0,0,0);overflow:hidden;white-space:nowrap}
+    .error{ color:#b91c1c; font-size:12px }
   </style>
 </head>
 <body class="text-waseela-ink">
@@ -60,14 +59,14 @@
           </span>
           <div>
             <div class="text-lg font-extrabold tracking-tight text-waseela-primary">وسيلة</div>
-            <div class="text-[11px] -mt-0.5 text-gray-500">تشغيل سيارات الحوض</div>
+            <div class="text-[11px] -mt-0.5 text-gray-500">اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة</div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           <button id="modePickup" class="pill bg-blue-50 text-blue-700 border border-blue-200">تحديد التحميل</button>
           <button id="modeDrop"   class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">تحديد التفريغ</button>
-          <button id="installBtn" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft hidden">تثبيت التطبيق</button>
+          <button id="installBtn" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft hidden">تثبيت</button>
           <button id="ctaTop" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft">طلب حوض</button>
         </div>
       </div>
@@ -78,7 +77,8 @@
       <!-- حالة سريعة -->
       <section class="bg-white rounded-2xl shadow-soft p-3 mb-3 text-sm flex items-center justify-between">
         <div class="flex items-center gap-2">
-          <span class="pill bg-gray-100 text-gray-600">المسافة: <b id="distanceKm">—</b> كم</span>
+          <span class="pill bg-gray-100 text-gray-600">المسافة (جغرافي): <b id="distanceKm">—</b> كم</span>
+          <span class="pill bg-gray-100 text-gray-600">المسافة (طريق): <b id="roadKm">—</b> كم</span>
           <span class="pill bg-gray-100 text-gray-600">السعر: <b id="price">—</b> ر.س</span>
         </div>
         <button id="locateBtn" class="text-blue-600 underline">موقعي</button>
@@ -99,22 +99,25 @@
         <h2 class="text-lg font-extrabold mb-2">تسجيل سائق ومركبة (أصحاب الونيتات)</h2>
         <p class="text-sm text-gray-600 mb-4">أكمل الحقول التالية بدقة. البيانات تحفظ محليًا على جهازك.</p>
 
-        <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm">
+        <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm" novalidate>
           <div class="col-span-2 font-semibold text-waseela-primary">بيانات السائق</div>
 
           <div>
             <label class="block text-gray-700">الاسم الكامل</label>
             <input name="driverName" required class="mt-1 w-full border rounded-xl p-3" placeholder="الاسم الثلاثي" />
+            <div data-err="driverName" class="error hidden">الاسم مطلوب</div>
           </div>
 
           <div>
             <label class="block text-gray-700">رقم الجوال</label>
-            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" />
+            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" pattern="^05\\d{8}$" />
+            <div data-err="driverPhone" class="error hidden">أدخل رقم بصيغة 05XXXXXXXX</div>
           </div>
 
           <div>
             <label class="block text-gray-700">رقم الهوية/الإقامة</label>
-            <input name="driverId" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 10 أرقام" />
+            <input name="driverId" required class="mt-1 w-full border rounded-xl p-3" inputmode="numeric" pattern="^\\d{10}$" placeholder="10 أرقام" />
+            <div data-err="driverId" class="error hidden">رقم من 10 أرقام</div>
           </div>
 
           <div>
@@ -124,19 +127,21 @@
               <option>الرياض</option><option>مكة المكرمة</option><option>المدينة المنورة</option>
               <option>القصيم</option><option>الشرقية</option><option>عسير</option>
               <option>تبوك</option><option>حائل</option><option>الحدود الشمالية</option>
-              <option>جازان</option><option>نجران</option><option>الباحة</option>
-              <option>الجوف</option>
+              <option>جازان</option><option>نجران</option><option>الباحة</option><option>الجوف</option>
             </select>
+            <div data-err="region" class="error hidden">اختر المنطقة</div>
           </div>
 
           <div>
             <label class="block text-gray-700">رقم رخصة القيادة</label>
             <input name="licenseNo" required class="mt-1 w-full border rounded-xl p-3" />
+            <div data-err="licenseNo" class="error hidden">الرجاء إدخال رقم الرخصة</div>
           </div>
 
           <div>
             <label class="block text-gray-700">تاريخ انتهاء الرخصة</label>
             <input name="licenseExpiry" type="date" required class="mt-1 w-full border rounded-xl p-3" />
+            <div data-err="licenseExpiry" class="error hidden">يرجى تحديد تاريخ الانتهاء</div>
           </div>
 
           <div class="col-span-2 font-semibold text-waseela-primary mt-2">بيانات المركبة (الونيت)</div>
@@ -144,36 +149,35 @@
           <div>
             <label class="block text-gray-700">رقم اللوحة</label>
             <input name="plate" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: أ ب ج 1234" />
+            <div data-err="plate" class="error hidden">رقم اللوحة مطلوب</div>
           </div>
 
           <div>
             <label class="block text-gray-700">الموديل</label>
             <input name="model" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 2021" />
+            <div data-err="model" class="error hidden">أدخل سنة/موديل</div>
           </div>
 
           <div>
             <label class="block text-gray-700">النوع</label>
             <select name="type" required class="mt-1 w-full border rounded-xl p-3">
               <option value="">اختر النوع</option>
-              <option>حوض عادي</option>
-              <option>حوض دبل</option>
-              <option>ثلاجة (مبرد)</option>
-              <option>سقف عالي/غطاء</option>
+              <option>حوض عادي</option><option>حوض دبل</option><option>ثلاجة (مبرد)</option><option>سقف عالي/غطاء</option>
             </select>
+            <div data-err="type" class="error hidden">اختر نوع المركبة</div>
           </div>
 
           <div>
             <label class="block text-gray-700">الحمولة القصوى (كجم)</label>
             <input name="capacityKg" type="number" required class="mt-1 w-full border rounded-xl p-3" placeholder="مثال: 1500" />
+            <div data-err="capacityKg" class="error hidden">أدخل قيمة رقمية</div>
           </div>
 
           <div class="col-span-2 font-semibold text-waseela-primary mt-2">مستندات (اختياري — تحفظ محليًا)</div>
-
           <div>
             <label class="block text-gray-700">صورة رخصة القيادة</label>
             <input name="licenseImg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
           </div>
-
           <div>
             <label class="block text-gray-700">استمارة المركبة</label>
             <input name="vehicleReg" type="file" accept="image/*,application/pdf" class="mt-1 w-full border rounded-xl p-2" />
@@ -187,6 +191,10 @@
           <div class="col-span-2 flex gap-3 mt-1">
             <button class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft" type="submit">حفظ التسجيل</button>
             <button id="clearDriver" class="flex-1 px-6 py-3 rounded-xl border" type="button">مسح البيانات</button>
+          </div>
+
+          <div class="col-span-2 flex gap-3 mt-2">
+            <button id="exportJson" class="flex-1 px-6 py-3 rounded-xl border">تصدير البيانات JSON</button>
           </div>
 
           <div id="driverSaved" class="hidden col-span-2 mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200">
@@ -212,37 +220,29 @@
           <div class="grid grid-cols-2 gap-3 text-sm">
             <div class="col-span-2">
               <label class="block text-gray-700">التحميل</label>
-              <input id="pickupText" type="text" placeholder="مثال: مستودع شمال"
-                     class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
+              <input id="pickupText" type="text" placeholder="مثال: مستودع شمال" class="mt-1 w-full border rounded-xl p-3 focus:ring-2 focus:ring-waseela-primary/40"/>
               <div id="pickupMeta" class="text-[11px] text-gray-500 mt-1"></div>
             </div>
             <div class="col-span-2">
               <label class="block text-gray-700">التفريغ</label>
-              <input id="dropText" type="text" placeholder="مثال: صناعية السلي"
-                     class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
+              <input id="dropText" type="text" placeholder="مثال: صناعية السلي" class="mt-1 w-full border rounded-xl p-3 focus:ring-2 focus:ring-waseela-primary/40"/>
               <div id="dropMeta" class="text-[11px] text-gray-500 mt-1"></div>
             </div>
             <div>
               <label class="block text-gray-700">الوزن (كجم)</label>
-              <input id="weight" type="number" placeholder="800"
-                     class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
+              <input id="weight" type="number" placeholder="800" class="mt-1 w-full border rounded-xl p-3 focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
             <div>
               <label class="block text-gray-700">التاريخ</label>
-              <input id="date" type="datetime-local"
-                     class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
+              <input id="date" type="datetime-local" class="mt-1 w-full border rounded-xl p-3 focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
             <div class="col-span-2">
               <label class="block text-gray-700">ملاحظات</label>
-              <textarea id="notes" rows="2" placeholder="تفاصيل إضافية…"
-                        class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"></textarea>
+              <textarea id="notes" rows="2" placeholder="تفاصيل إضافية…" class="mt-1 w-full border rounded-xl p-3 focus:ring-2 focus:ring-waseela-primary/40"></textarea>
             </div>
           </div>
 
-          <button id="nextConfirm"
-                  class="mt-3 w-full px-6 py-3 rounded-xl text-white grad-primary shadow-soft">
-            متابعة للتأكيد
-          </button>
+          <button id="nextConfirm" class="mt-3 w-full px-6 py-3 rounded-xl text-white grad-primary shadow-soft">متابعة للتأكيد</button>
 
           <div class="mt-3 text-[12px] text-gray-500">
             تقدير السعر الحالي: <b id="priceInline">—</b> ر.س (يتحدّث حسب المسافة/الوزن)
@@ -264,17 +264,14 @@
           <div id="summary" class="bg-gray-50 rounded-xl p-3 text-sm"></div>
 
           <div class="flex gap-3 mt-3">
-            <button id="confirmBtn" class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft">
-              تأكيد الحجز
-            </button>
+            <button id="confirmBtn" class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft">تأكيد الحجز</button>
             <button id="backBtn" class="flex-1 px-6 py-3 rounded-xl border">رجوع</button>
           </div>
 
           <div id="afterConfirm" class="hidden mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm">
             تم إنشاء الحجز: <b id="rideId"></b>.
             <div class="mt-2 flex items-center gap-2">
-              <a id="callDriver" href="tel:0550000000"
-                 class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">اتصال بالسائق</a>
+              <a id="callDriver" href="tel:0550000000" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">اتصال بالسائق</a>
               <a id="smsDriver" href="sms:0550000000" class="text-emerald-700 underline">رسالة نصية</a>
             </div>
           </div>
@@ -311,7 +308,7 @@
   <script>
     // Manifest inline (كـ Blob)
     const manifest = {
-      name: "وسيلة — تطبيق سيارات الحوض",
+      name: "وسيلة — اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة",
       short_name: "وسيلة",
       start_url: ".",
       display: "standalone",
@@ -352,7 +349,7 @@
       navigator.serviceWorker.register(swURL);
     }
 
-    // A2HS (Add to Home Screen)
+    // A2HS
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e)=>{
       e.preventDefault();
@@ -371,7 +368,7 @@
   <!-- المنطق العام -->
   <script>
     /* إعدادات التسعير */
-    const BASE = 15, PER_KM = 1.2, PER_KG = 0.05
+    const BASE = 15, PER_KM = 1.2, PER_KG = 0.05, ROAD_FACTOR = 1.25
 
     /* خريطة */
     const map = L.map('map', { zoomControl:false }).setView([24.7136,46.6753], 11)
@@ -380,11 +377,12 @@
     /* وضع التحديد */
     let mode = 'pickup' // pickup | drop
     let pickup = null, drop = null
-    let pickupMarker, dropMarker
+    let pickupMarker, dropMarker, routeLine
 
     const modePickupBtn = document.getElementById('modePickup')
     const modeDropBtn   = document.getElementById('modeDrop')
     const distanceEl = document.getElementById('distanceKm')
+    const roadEl = document.getElementById('roadKm')
     const priceEl = document.getElementById('price')
     const priceInline = document.getElementById('priceInline')
 
@@ -404,6 +402,7 @@
         dropMarker = L.marker(drop, {title:'التفريغ'}).addTo(map)
         document.getElementById('dropMeta').textContent = `إحداثيات التفريغ: ${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)}`
       }
+      drawRoute()
       updateEstimates()
     })
 
@@ -418,6 +417,7 @@
             if(pickupMarker) pickupMarker.remove()
             pickupMarker = L.marker(pickup).addTo(map)
             document.getElementById('pickupMeta').textContent = `إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`
+            drawRoute()
             updateEstimates()
           }
         })
@@ -425,18 +425,6 @@
     })
 
     /* تقديرات */
-    function haversine(a,b){
-      const toRad = d=>d*Math.PI/180
-      const R=6371 // كم
-      const dLat = toRad(b.lat - a.lat)
-      const dLon = toRad(b.lng - a.lng)
-      const lat1 = toRad(a.lat)
-      const lat2 = toRad(b.lat)
-      const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*mathsin(dLon/2)**2
-    }
-  </script>
-  <script>
-    // (تصحيح سهو الكتابة السابقة)
     function haversine(a,b){
       const toRad = d=>d*Math.PI/180
       const R=6371
@@ -447,14 +435,25 @@
       const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2
       return 2*R*Math.asin(Math.sqrt(h))
     }
+
     function updateEstimates(){
       const weight = Number(document.getElementById('weight')?.value || 0)
       let km = (pickup && drop) ? haversine(pickup, drop) : 0
       km = Math.round(km * 10) / 10
-      const price = Math.max(0, BASE + km*PER_KM + weight*PER_KG).toFixed(2)
-      document.getElementById('distanceKm').textContent = isNaN(km)? '—' : km
-      document.getElementById('price').textContent = price
-      const pi = document.getElementById('priceInline'); if(pi) pi.textContent = price
+      const roadKm = Math.round(km * ROAD_FACTOR * 10)/10
+      const price = Math.max(0, BASE + roadKm*PER_KM + weight*PER_KG).toFixed(2)
+      distanceEl.textContent = km || '—'
+      roadEl.textContent = roadKm || '—'
+      priceEl.textContent = price
+      if(priceInline) priceInline.textContent = price
+    }
+
+    function drawRoute(){
+      if(routeLine) { map.removeLayer(routeLine); routeLine = null }
+      if(pickup && drop){
+        routeLine = L.polyline([pickup, drop], {color:'#1B6AA5', weight:5, opacity:.65}).addTo(map)
+        map.fitBounds(routeLine.getBounds(), {padding:[20,20]})
+      }
     }
 
     /* Sheets */
@@ -477,11 +476,12 @@
     document.getElementById('nextConfirm').addEventListener('click', ()=>{
       if(!pickup || !drop){ alert('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.'); return }
       const km = (pickup && drop) ? (Math.round(haversine(pickup, drop)*10)/10) : 0
-      const price = Math.max(0, BASE + km*PER_KM + Number(weightEl.value||0)*PER_KG).toFixed(2)
+      const roadKm = Math.round(km * ROAD_FACTOR * 10)/10
+      const price = Math.max(0, BASE + roadKm*PER_KM + Number(weightEl.value||0)*PER_KG).toFixed(2)
       const summary = `
         <div><b>التحميل:</b> ${pickupText.value || '—'} <span class="text-gray-500">(${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)})</span></div>
         <div><b>التفريغ:</b> ${dropText.value || '—'} <span class="text-gray-500">(${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)})</span></div>
-        <div><b>المسافة:</b> ${km} كم</div>
+        <div><b>المسافة (جغرافية):</b> ${km} كم — <b>طريق:</b> ${roadKm} كم</div>
         <div><b>الوزن:</b> ${Number(weightEl.value||0)} كجم</div>
         <div><b>التاريخ:</b> ${dateEl.value || '—'}</div>
         <div><b>ملاحظات:</b> ${notesEl.value || '—'}</div>
@@ -514,16 +514,52 @@
       })
     })
 
-    // نموذج السائق/المركبة: حفظ محلي
+    // ========= تحقق ذكي (هاتف/هوية) =========
     const driverForm = document.getElementById('driverForm')
     const driverSaved = document.getElementById('driverSaved')
     const driverPreview = document.getElementById('driverPreview')
     const clearDriver = document.getElementById('clearDriver')
 
+    function onlyDigits(el, max){
+      el.addEventListener('input', ()=>{
+        el.value = el.value.replace(/\\D/g,'').slice(0, max||100)
+      })
+    }
+    const phoneEl = driverForm.elements['driverPhone']
+    const idEl = driverForm.elements['driverId']
+    onlyDigits(idEl, 10)
+    phoneEl.addEventListener('input', ()=>{
+      phoneEl.value = phoneEl.value.replace(/\\D/g,'').slice(0,10)
+      if(!phoneEl.value.startsWith('05')) phoneEl.value = '05' + phoneEl.value.replace(/^05/,'')
+    })
+
+    function showErr(name, cond){
+      const el = driverForm.querySelector(`[data-err=\"${name}\"]`)
+      if(!el) return
+      if(cond){ el.classList.remove('hidden') } else { el.classList.add('hidden') }
+    }
+
+    function validateDriver(){
+      const f = driverForm.elements
+      const errs = {
+        driverName: !f['driverName'].value.trim(),
+        driverPhone: !/^05\\d{8}$/.test(f['driverPhone'].value.trim()),
+        driverId: !/^\\d{10}$/.test(f['driverId'].value.trim()),
+        region: !f['region'].value,
+        licenseNo: !f['licenseNo'].value.trim(),
+        licenseExpiry: !f['licenseExpiry'].value,
+        plate: !f['plate'].value.trim(),
+        model: !f['model'].value.trim(),
+        type: !f['type'].value,
+        capacityKg: !f['capacityKg'].value
+      }
+      Object.entries(errs).forEach(([k,v])=>showErr(k,v))
+      return !Object.values(errs).some(Boolean)
+    }
+
     function serializeDriver(form){
       const fd = new FormData(form)
       const obj = Object.fromEntries(fd.entries())
-      // خزن أسماء الملفات فقط (الديمو)
       obj.licenseImgName = (fd.get('licenseImg') && fd.get('licenseImg').name) || ''
       obj.vehicleRegName = (fd.get('vehicleReg') && fd.get('vehicleReg').name) || ''
       return obj
@@ -550,6 +586,7 @@
 
     driverForm.addEventListener('submit', (e)=>{
       e.preventDefault()
+      if(!validateDriver()) return
       const data = serializeDriver(driverForm)
       localStorage.setItem('waseela_driver', JSON.stringify(data))
       driverSaved.classList.remove('hidden')
@@ -563,10 +600,40 @@
       driverForm.reset()
     })
 
+    // ========= تصدير JSON (سائق + آخر حجز) =========
+    document.getElementById('exportJson').addEventListener('click', ()=>{
+      const driver = JSON.parse(localStorage.getItem('waseela_driver') || '{}')
+      const lastRide = JSON.parse(localStorage.getItem('waseela_last_ride') || 'null')
+      const blob = new Blob([JSON.stringify({ driver, lastRide }, null, 2)], {type:'application/json'})
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url; a.download = 'waseela_export.json'
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(url)
+    })
+
     loadDriver()
 
     // افتح نموذج الحجز مباشرة على الشاشات الصغيرة
     if (window.matchMedia('(max-width: 640px)').matches) openSheet()
+  </script>
+
+  <!-- حفظ آخر طلب حجز بعد التأكيد -->
+  <script>
+    document.getElementById('confirmBtn').addEventListener('click', ()=>{
+      const payload = {
+        pickup, drop,
+        pickupText: document.getElementById('pickupText').value,
+        dropText: document.getElementById('dropText').value,
+        weight: Number(document.getElementById('weight').value || 0),
+        date: document.getElementById('date').value,
+        notes: document.getElementById('notes').value,
+        distanceGeoKm: Number(document.getElementById('distanceKm').textContent || 0),
+        distanceRoadKm: Number(document.getElementById('roadKm').textContent || 0),
+        price: document.getElementById('price').textContent
+      }
+      localStorage.setItem('waseela_last_ride', JSON.stringify(payload))
+    })
   </script>
 </body>
 </html>
