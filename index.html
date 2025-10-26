@@ -22,17 +22,43 @@
     html,body{height:100%;background:#f7fafc}
     body{font-family:"Tajawal",sans-serif}
     #app{min-height:100%;padding-bottom:64px}
-    #map{height:clamp(320px,55vh,520px);border-radius:16px}
+
+    /* ✅ إصلاح تغطية الخريطة على الجوال */
+    #mapWrap{
+      position: relative;
+      border-radius: 16px;
+      overflow: hidden;
+      isolation: isolate;   /* سياق تكديس مستقل */
+      z-index: 0;
+    }
+    /* ارتفاع أدق باستخدام svh مع حدود مناسبة */
+    #map{height:clamp(260px,50svh,480px);border-radius:16px}
+    /* خفض طبقات Leaflet داخل الحاوية */
+    #mapWrap .leaflet-container{z-index:0}
+    #mapWrap .leaflet-pane,
+    #mapWrap .leaflet-control{z-index:1}
+    /* أي قسم بعد الخريطة يبقى فوقها */
+    .section-after-map,
+    .page{position:relative;z-index:2}
+
     .grad-primary{background:linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%)}
     .safe-top{padding-top:env(safe-area-inset-top)}
     .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
-    .sheet{position:fixed;inset-inline:0;bottom:56px;z-index:60;display:none}
+    .sheet{position:fixed;inset-inline:0;bottom:56px;z-index:1000;display:none}
     .sheet-card{border-top-left-radius:18px;border-top-right-radius:18px;max-height:80dvh;overflow:auto}
     .drag-handle{width:40px;height:4px;background:#cbd5e1;border-radius:999px;margin:8px auto}
     .tabbar{height:56px}
     .pill{padding:2px 8px;border-radius:999px;font-size:11px}
     .page{display:none}.page.active{display:block}
     .error{color:#b91c1c;font-size:12px}
+
+    /* اجعل الرأس والتبويب دائمًا فوق الخريطة */
+    header, nav.tabbar{z-index:900 !important}
+
+    /* شاشات صغيرة جدًا */
+    @media (max-width:380px){
+      #map{height:45svh}
+    }
   </style>
 </head>
 <body class="text-waseela-ink">
@@ -49,7 +75,6 @@
       const DEFAULT_DRIVER_PHONE = '0550000000';
 
       // رابط دفع (Stripe Payment Link أو أي بوابة دفع) — اختياري
-      // مثال: https://buy.stripe.com/test_XXXXXXXX
       const PAYMENT_LINK = '';
 
       // تكامل Supabase Storage (اختياري للرفع)
@@ -61,7 +86,7 @@
     <!-- ================================================ -->
 
     <!-- Header -->
-    <header class="px-4 py-2 bg-white shadow-sm sticky top-0 z-40">
+    <header class="px-4 py-2 bg-white shadow-sm sticky top-0">
       <div class="max-w-screen-md mx-auto flex items-center justify-between">
         <div class="flex items-center gap-2">
           <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl grad-primary shadow-soft" aria-hidden="true">
@@ -94,8 +119,11 @@
       </section>
 
       <section class="bg-white rounded-2xl shadow-soft p-2">
-        <div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div>
-        <div class="px-2 py-2 text-[12px] text-gray-500">
+        <!-- ✅ حاوية الخريطة الجديدة لمنع التداخل -->
+        <div id="mapWrap">
+          <div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div>
+        </div>
+        <div class="px-2 py-2 text-[12px] text-gray-500 section-after-map">
           اختر الوضع ثم انقر على الخريطة لتحديد <b>التحميل</b> أو <b>التفريغ</b>.
         </div>
       </section>
@@ -113,7 +141,7 @@
     <!-- سائق/مركبات -->
     <section id="driverPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
       <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabولد mb-2">تسجيل سائق ومركبات (أصحاب الونيتات)</h2>
+        <h2 class="text-lg font-extrabold mb-2">تسجيل سائق ومركبات (أصحاب الونيتات)</h2>
         <p class="text-sm text-gray-600 mb-4">البيانات تحفظ محليًا أو تُرفع للمخزن عند تفعيل Supabase.</p>
 
         <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm" novalidate>
@@ -305,7 +333,7 @@
     </div>
 
     <!-- تبويب سفلي -->
-    <nav class="tabbar fixed bottom-0 inset-x-0 bg-white border-t shadow-sm z-50 safe-bottom">
+    <nav class="tabbar fixed bottom-0 inset-x-0 bg-white border-t shadow-sm safe-bottom">
       <div class="max-w-screen-md mx-auto grid grid-cols-5">
         <button class="py-2 flex flex-col items-center gap-0.5 text-blue-600" data-tab="home">
           <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 3l9 8h-3v9H6v-9H3l9-8z"/></svg>
@@ -387,13 +415,11 @@
           const r=await fetchOSRMRoute(pickup,drop);
           routeLine=L.geoJSON({type:'Feature',geometry:r.geometry}).addTo(map);
           map.fitBounds(routeLine.getBounds(),{padding:[20,20]});
-          // تخزين المسافة الدقيقة مؤقتًا لاحتساب السعر
           map._lastRoadKm = Math.round(r.distanceKm*10)/10;
         }catch(_){
-          // فشل — نستخدم خط مستقيم كمرجع بصري
           routeLine=L.polyline([pickup,drop],{color:'#1B6AA5',weight:5,opacity:.65}).addTo(map);
           map.fitBounds(routeLine.getBounds(),{padding:[20,20]});
-          map._lastRoadKm = null; // حتى نعتمد fallback في التسعير
+          map._lastRoadKm = null;
         }
         updateEstimates();
       }
@@ -410,7 +436,7 @@
     // شيتات
     const sheet=document.getElementById('sheet'), confirmSheet=document.getElementById('confirmSheet');
     const openSheet=()=>sheet.style.display='block', closeSheet=()=>sheet.style.display='none', openConfirm=()=>confirmSheet.style.display='block', closeConfirm=()=>confirmSheet.style.display='none';
-    document.getElementById('ctaTop').addEventListener('click',()=>{openSheet();scrollTo({top:0,behavior:'smooth'})}); document.getElementById('closeSheet').addEventListener('click',closeSheet);
+    document.getElementById('ctaTop').addEventListener('click',()=>{openSheet();scrollTo({top:0,behavior:'smooth'})}); document.getElementById('closeSheet').addEventListener('click', closeSheet);
 
     const pickupText=document.getElementById('pickupText'),dropText=document.getElementById('dropText'),weightEl=document.getElementById('weight'),dateEl=document.getElementById('date'),notesEl=document.getElementById('notes');
     document.getElementById('nextConfirm').addEventListener('click',()=>{
@@ -493,10 +519,10 @@
         `التحميل: ${pickupText.value} (${pickup?.lat?.toFixed(5)}, ${pickup?.lng?.toFixed(5)})`,
         `التفريغ: ${dropText.value} (${drop?.lat?.toFixed(5)}, ${drop?.lng?.toFixed(5)})`,
         `المسافة (طريق): ${document.getElementById('roadKm').textContent} كم`,
-        `الوزن: ${weightEl.value||0} كجم`,
+        `الوزن: ${document.getElementById('weight').value||0} كجم`,
         `السعر التقديري: ${document.getElementById('price').textContent} ر.س`,
-        `التاريخ: ${dateEl.value||'—'}`,
-        `ملاحظات: ${notesEl.value||'—'}`
+        `التاريخ: ${document.getElementById('date').value||'—'}`,
+        `ملاحظات: ${document.getElementById('notes').value||'—'}`
       ];
       lines.forEach(l=>{doc.text(l,40,y);y+=18;});
       doc.save(`wasila-receipt-${id}.pdf`);
@@ -521,7 +547,7 @@
           </div>
           <div class="flex gap-2">
             <button class="px-3 py-1 rounded-lg border" data-pdf="${o.id}">PDF</button>
-            <a class="px-3 py-1 rounded-lg border" target="_blank" href="https://wa.me/${(JSON.parse(localStorage.getItem('waseela_driver')||'{}').driverPhone||DEFAULT_DRIVER_PHONE).replace(/^0/,'966')}/?text=${encodeURIComponent('متابعة طلب #'+o.id)}">واتساب</a>
+            <a class="px-3 py-1 rounded-lg border" target="_blank" href="https://wa.me/${(JSON.parse(localStorage.getItem('waseela_driver')||'{}').driverPhone||'0550000000').replace(/^0/,'966')}/?text=${encodeURIComponent('متابعة طلب #'+o.id)}">واتساب</a>
           </div>`;
         list.appendChild(row);
         row.querySelector('[data-pdf]').onclick=()=>generateOrderPDF(o);
@@ -620,7 +646,7 @@
       const fileName = `${pathPrefix}-${Date.now()}-${encodeURIComponent(file.name)}`;
       const url = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${fileName}`;
       const res = await fetch(url,{method:'POST',headers:{'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,'apikey':SUPABASE_ANON_KEY,'x-upsert':'true','Content-Type':file.type||'application/octet-stream'},body:file});
-      if(!res.ok) throw new Error('upload failed'); // قد تحتاج سياسة CORS/التخزين
+      if(!res.ok) throw new Error('upload failed');
       return `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(SUPABASE_BUCKET)}/${fileName}`;
     }
 
