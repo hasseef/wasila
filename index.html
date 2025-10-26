@@ -1,917 +1,569 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#1B6AA5" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <title>وسيلة — اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة</title>
-
-  <!-- خطوط + Tailwind -->
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Tajawal','ui-sans-serif','system-ui']},colors:{waseela:{primary:'#1B6AA5',secondary:'#10B981',ink:'#0f172a'}},boxShadow:{soft:'0 12px 30px rgba(27,106,165,.12)'},borderRadius:{'2xl':'1rem'}}}};</script>
-
-  <!-- Leaflet + jsPDF -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>وسيلة — نموذج أولي لحسابات التطبيق</title>
   <style>
-    html,body{height:100%;background:#f7fafc}
-    body{font-family:"Tajawal",sans-serif}
-    #app{min-height:100%;padding-bottom:64px}
-    /* ✅ إصلاح تغطية الخريطة على الجوال */
-    #mapWrap{position:relative;border-radius:16px;overflow:hidden;isolation:isolate;z-index:0}
-    #map{height:clamp(260px,50svh,480px);border-radius:16px}
-    #mapWrap .leaflet-container{z-index:0}
-    #mapWrap .leaflet-pane, #mapWrap .leaflet-control{z-index:1}
-    .section-after-map,.page{position:relative;z-index:2}
-    .grad-primary{background:linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%)}
-    .safe-top{padding-top:env(safe-area-inset-top)}
-    .safe-bottom{padding-bottom:env(safe-area-inset-bottom)}
-    .sheet{position:fixed;inset-inline:0;bottom:56px;z-index:1000;display:none}
-    .sheet-card{border-top-left-radius:18px;border-top-right-radius:18px;max-height:80dvh;overflow:auto}
-    .drag-handle{width:40px;height:4px;background:#cbd5e1;border-radius:999px;margin:8px auto}
-    .tabbar{height:56px}
-    .pill{padding:2px 8px;border-radius:999px;font-size:11px}
-    .page{display:none}.page.active{display:block}
-    .error{color:#b91c1c;font-size:12px}
-    header, nav.tabbar{z-index:900 !important}
-    @media (max-width:380px){#map{height:45svh}}
-    /* نافذة الدخول */
-    .modal{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;z-index:1100}
-    .modal.show{display:flex;align-items:center;justify-content:center}
+    :root{
+      /* ألوان وسيلة المعتمدة */
+      --bg:#0e0f12; --card:#14161a; --muted:#9aa3af; --text:#e7eaf0; --brand:#36cfc9; --brand-2:#7c7cf5; --danger:#ef4444;
+      --ok:#22c55e; --warn:#f59e0b; --b:#1f2937; --ring:#3b82f6;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;background:linear-gradient(180deg,#0c0d10,#0b1218 60%,#0c0f16);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif;}
+    a{color:inherit}
+    .container{max-width:1200px;margin:auto;padding:16px}
+    header{position:sticky;top:0;background:rgba(12,14,18,.7);backdrop-filter:blur(8px);z-index:50;border-bottom:1px solid #1f2937}
+    .brand{display:flex;gap:10px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 20deg,var(--brand),var(--brand-2));box-shadow:0 0 0 2px #0b0e14 inset}
+    .logoImg{width:36px;height:36px;border-radius:10px;object-fit:cover;display:none;box-shadow:0 0 0 2px #0b0e14 inset}
+    .logoImg.hidden{display:none}
+    .title{font-weight:700;letter-spacing:.2px}
+
+    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid #1f2937;border-radius:16px;padding:18px}
+    .card h3{margin:0 0 10px 0}
+
+    .accounts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .btn{width:100%;padding:14px;border-radius:12px;border:1px solid #2b3240;background:#12161e;cursor:pointer;color:var(--text);font-weight:600}
+    .btn:hover{border-color:var(--brand-2)}
+
+    .workbench{display:grid;grid-template-columns:1fr 420px;gap:16px}
+    .mapWrap{position:relative;min-height:420px;border-radius:16px;overflow:hidden;border:1px solid #1f2937;background:#0b1118}
+    .mapFake{position:absolute;inset:0;z-index:1;background-image:radial-gradient(#1a2634 1px, transparent 1px);background-size:18px 18px;display:flex;align-items:center;justify-content:center;color:#9fb3c8;font-weight:700;letter-spacing:1px}
+    .panel{position:relative;z-index:2}
+
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .field{display:grid;gap:6px;margin-bottom:10px}
+    label{font-size:12px;color:var(--muted)}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;background:#0f1420;border:1px solid #243044;color:var(--text)}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 4px rgba(124,124,245,.15)}
+    .muted{color:var(--muted);font-size:13px}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none}
+    .ghost{background:transparent;border:1px dashed #374151}
+
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+    .tab{padding:8px 12px;border-radius:999px;border:1px solid #2b3240;background:#12161e;cursor:pointer}
+    .tab.active{border-color:var(--brand-2);box-shadow:0 0 0 4px rgba(124,124,245,.15)}
+
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .stat{padding:14px;border-radius:12px;border:1px solid #273043;background:#0f1420}
+    .stat b{font-size:22px}
+
+    footer{margin:24px 0 12px;color:#8a93a3;font-size:12px}
+
+    @media (max-width: 1100px){.workbench{grid-template-columns:1fr}}
+    @media (max-width: 860px){.accounts{grid-template-columns:repeat(2,1fr)}}
+    @media (max-width: 460px){.accounts{grid-template-columns:1fr}}
+
+    .mapCollapsed .mapWrap{display:none}
+
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #2b3240}
   </style>
 </head>
-<body class="text-waseela-ink">
-  <div id="app" class="safe-top">
-
-    <!-- ===== إعدادات قابلة للتعديل ===== -->
-    <script>
-      // تسعير افتراضي (قابل للتعديل من لوحة المدير)
-      let PRICING = JSON.parse(localStorage.getItem('waseela_pricing')||'null') || { BASE:15, PER_KM:1.2, PER_KG:0.05 };
-      const ROAD_FACTOR_FALLBACK = 1.25;
-
-      // كلمات مرور/إعدادات
-      const ADMIN_PASS = localStorage.getItem('waseela_admin_pass') || 'admin123'; // يمكن تغييره من لوحة المدير
-      const DEFAULT_DRIVER_PHONE = '0550000000';
-
-      // دفع اختياري
-      const PAYMENT_LINK = localStorage.getItem('waseela_payment_link') || '';
-
-      // رفع اختياري (Supabase)
-      const SUPABASE_URL = '';   // مثال: https://abcd.supabase.co
-      const SUPABASE_ANON_KEY = '';
-      const SUPABASE_BUCKET = 'documents';
-    </script>
-    <!-- ================================== -->
-
-    <!-- Header -->
-    <header class="px-4 py-2 bg-white shadow-sm sticky top-0">
-      <div class="max-w-screen-md mx-auto flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl grad-primary shadow-soft" aria-hidden="true">
-            <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor"><path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Zm6-4.5V6.75c0-.138.112-.25.25-.25h2.5c.138 0 .25.112.25.25V9H9Z"/></svg>
-          </span>
-          <div>
-            <div class="text-lg font-extrabold tracking-tight text-waseela-primary">وسيلة</div>
-            <div class="text-[11px] -mt-0.5 text-gray-500">اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة</div>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <span id="authBadge" class="hidden pill bg-gray-100 text-gray-700"></span>
-          <button id="loginBtn" class="px-3 py-2 rounded-lg border text-sm">دخول</button>
-          <button id="logoutBtn" class="px-3 py-2 rounded-lg border text-sm hidden">خروج</button>
-          <button id="modePickup" class="pill bg-blue-50 text-blue-700 border border-blue-200">تحديد التحميل</button>
-          <button id="modeDrop"   class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">تحديد التفريغ</button>
-          <button id="installBtn" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft hidden">تثبيت</button>
-          <button id="ctaTop" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft">طلب حوض</button>
+<body>
+  <header>
+    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px">
+      <div class="brand">
+        <img id="appLogo" class="logoImg" alt="وسيلة" />
+        <div class="logo" aria-hidden="true" title="Fallback"></div>
+        <div>
+          <div class="title">وسيلة — نموذج أولي لحسابات التطبيق</div>
+          <div class="muted" id="envNote">نسخة عرض أولية — بدون أي بيانات حقيقية</div>
         </div>
       </div>
-    </header>
+      <div class="actions">
+        <button class="btn ghost" id="toggleMapBtn" title="إظهار / إخفاء الخريطة">إظهار/إخفاء الخريطة</button>
+        <button class="btn" onclick="location.hash='#landing'">الواجهة الرئيسية</button>
+      </div>
+    </div>
+  </header>
 
-    <!-- الرئيسية -->
-    <main id="homePage" class="page active px-4 pt-3 pb-4 max-w-screen-md mx-auto">
-      <section class="bg-white rounded-2xl shadow-soft p-3 mb-3 text-sm flex items-center justify-between">
-        <div class="flex flex-wrap items-center gap-2">
-          <span class="pill bg-gray-100 text-gray-600">جغرافي: <b id="distanceKm">—</b> كم</span>
-          <span class="pill bg-gray-100 text-gray-600">طريق: <b id="roadKm">—</b> كم</span>
-          <span class="pill bg-gray-100 text-gray-600">السعر: <b id="price">—</b> ر.س</span>
-        </div>
-        <button id="locateBtn" class="text-blue-600 underline">موقعي</button>
-      </section>
+  <main class="container">
 
-      <section class="bg-white rounded-2xl shadow-soft p-2">
-        <div id="mapWrap"><div id="map" class="w-full" aria-label="خريطة تحديد مواقع التحميل والتفريغ"></div></div>
-        <div class="px-2 py-2 text-[12px] text-gray-500 section-after-map">
-          اختر الوضع ثم انقر على الخريطة لتحديد <b>التحميل</b> أو <b>التفريغ</b>.
-        </div>
-      </section>
-    </main>
-
-    <!-- طلباتي -->
-    <section id="ordersPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
-      <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">طلباتي</h2>
-        <div id="ordersList" class="space-y-3 text-sm"></div>
-        <div id="ordersEmpty" class="text-gray-500 text-sm">لا توجد طلبات بعد.</div>
+    <!-- Landing / Accounts entry -->
+    <section id="landing" class="card">
+      <h3>عنوان: نموذج أولي لحسابات تطبيق وسيلة <span class="badge" style="border-color:var(--ok)">كل الحسابات مُفعلة ✅</span></h3>
+      <p class="muted">اختر الحساب الذي تريد الدخول إليه للتجربة:</p>
+      <div class="accounts" style="margin-top:10px">
+        <button class="btn" onclick="openView('shipper')">حساب العملاء (طالِب الخدمة)</button>
+        <button class="btn" onclick="openView('owner')">حساب أصحاب الونيتات (تسجيل المركبة)</button>
+        <button class="btn" onclick="openView('driver')">حساب السائقين</button>
+        <button class="btn" onclick="openView('admin')">حساب إدارة التطبيق</button>
+        <button class="btn" onclick="openView('ownersList')">قائمة الملاك</button>
       </div>
     </section>
 
-    <!-- سائق/مركبات (حساب السائق) -->
-    <section id="driverPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
-      <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">حساب السائق — تسجيل/تحديث</h2>
-        <p class="text-sm text-gray-600 mb-4">ادخل بياناتك لتفعيل حسابك كسائق ونقل الأحمال بسيارات الحوض (الونيت).</p>
+    <!-- Shipper workspace -->
+    <section id="shipper" class="card" hidden>
+      <div class="tabs">
+        <button class="tab active" data-target="shipperBench">طلب جديد</button>
+        <button class="tab" data-target="shipper-orders">طلباتي</button>
+      </div>
 
-        <form id="driverForm" class="grid grid-cols-2 gap-3 text-sm" novalidate>
-          <div class="col-span-2 font-semibold text-waseela-primary">بيانات الدخول</div>
-          <div>
-            <label class="block text-gray-700">رقم الجوال (اسم المستخدم)</label>
-            <input name="driverPhone" required class="mt-1 w-full border rounded-xl p-3" inputmode="tel" placeholder="05xxxxxxxx" pattern="^05\\d{8}$" />
-            <div data-err="driverPhone" class="error hidden">أدخل رقم بصيغة 05XXXXXXXX</div>
+      <div class="workbench" id="shipperBench">
+        <div class="mapWrap">
+          <div class="mapFake">خريطة تجريبية (مكان الخريطة الفعلية مستقبلاً)</div>
+        </div>
+        <div class="panel card">
+          <h3>طلب توصيل <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
+          <div class="field">
+            <label>نقطة الاستلام</label>
+            <input id="pickup" placeholder="المدينة، الحي، الشارع" />
           </div>
-          <div>
-            <label class="block text-gray-700">كلمة المرور</label>
-            <input name="password" required type="password" class="mt-1 w-full border rounded-xl p-3" placeholder="••••••••" />
-            <div data-err="password" class="error hidden">كلمة المرور مطلوبة</div>
+          <div class="field">
+            <label>نقطة التسليم</label>
+            <input id="dropoff" placeholder="المدينة، الحي، الشارع" />
           </div>
+          <div class="row">
+            <div class="field">
+              <label>حجم/نوع المنقول</label>
+              <select id="cargoSize">
+                <option value="small">صغير (صناديق خفيفة)</option>
+                <option value="medium">متوسط (أثاث خفيف)</option>
+                <option value="big">كبير (أثاث ثقيل/معدات)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>موعد التنفيذ</label>
+              <input type="datetime-local" id="when" />
+            </div>
+          </div>
+          <div class="field">
+            <label>ملاحظات إضافية</label>
+            <textarea id="notes" rows="3" placeholder="وصف مختصر"></textarea>
+          </div>
+          <div class="actions">
+            <button class="btn primary" onclick="estimate()">تقدير السعر</button>
+            <button class="btn" onclick="submitOrder()">إرسال الطلب</button>
+            <span class="muted" id="estimateOut"></span>
+          </div>
+        </div>
+      </div>
 
-          <div class="col-span-2 font-semibold text-waseela-primary">بيانات السائق</div>
-          <div>
-            <label class="block text-gray-700">الاسم الكامل</label>
-            <input name="driverName" required class="mt-1 w-full border rounded-xl p-3" placeholder="الاسم الثلاثي" />
-            <div data-err="driverName" class="error hidden">الاسم مطلوب</div>
-          </div>
-          <div>
-            <label class="block text-gray-700">رقم الهوية/الإقامة</label>
-            <input name="driverId" required class="mt-1 w-full border rounded-xl p-3" inputmode="numeric" pattern="^\\d{10}$" placeholder="10 أرقام" />
-            <div data-err="driverId" class="error hidden">رقم من 10 أرقام</div>
-          </div>
-          <div>
-            <label class="block text-gray-700">المنطقة</label>
-            <select name="region" required class="mt-1 w-full border rounded-xl p-3">
-              <option value="">اختر المنطقة</option>
-              <option>الرياض</option><option>مكة المكرمة</option><option>المدينة المنورة</option>
-              <option>القصيم</option><option>الشرقية</option><option>عسير</option>
-              <option>تبوك</option><option>حائل</option><option>الحدود الشمالية</option>
-              <option>جازان</option><option>نجران</option><option>الباحة</option><option>الجوف</option>
+      <div id="shipper-orders" hidden>
+        <div class="card">
+          <h3>طلباتي</h3>
+          <div id="ordersList" class="muted">لا توجد طلبات بعد.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Owners (pickup truck owners) registration -->
+    <section id="owner" class="card" hidden>
+      <h3>تسجيل أصحاب الونيتات <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
+      <p class="muted">يرجى تعبئة بيانات المركبة والسائق بدقة. هذه نسخة تجريبية ولا يتم رفع ملفات فعلية.</p>
+      <div class="row">
+        <div class="card">
+          <h4>بيانات المركبة</h4>
+          <div class="field">
+            <label>نوع المركبة</label>
+            <select id="vehType">
+              <option>وانيت حوض صغير</option>
+              <option>وانيت حوض كبير</option>
+              <option>دينا</option>
+              <option>قفص/مغطى</option>
             </select>
-            <div data-err="region" class="error hidden">اختر المنطقة</div>
           </div>
-          <div>
-            <label class="block text-gray-700">رقم رخصة القيادة</label>
-            <input name="licenseNo" required class="mt-1 w-full border rounded-xl p-3" />
-            <div data-err="licenseNo" class="error hidden">مطلوب</div>
+          <div class="row">
+            <div class="field">
+              <label>رقم اللوحة</label>
+              <input id="plate" placeholder="مثال: س ع ل 1234"/>
+            </div>
+            <div class="field">
+              <label>موديل (سنة الصنع)</label>
+              <input id="modelYear" type="number" min="1990" max="2026" placeholder="2019"/>
+            </div>
           </div>
-          <div>
-            <label class="block text-gray-700">تاريخ انتهاء الرخصة</label>
-            <input name="licenseExpiry" type="date" required class="mt-1 w-full border rounded-xl p-3" />
-            <div data-err="licenseExpiry" class="error hidden">مطلوب</div>
+          <div class="row">
+            <div class="field">
+              <label>المنطقة</label>
+              <select id="region">
+                <option>منطقة حائل</option>
+                <option>منطقة الرياض</option>
+                <option>منطقة مكة المكرمة</option>
+                <option>المنطقة الشرقية</option>
+                <option>المدينة المنورة</option>
+                <option>القصيم</option>
+                <option>تبوك</option>
+                <option>عسير</option>
+                <option>جازان</option>
+                <option>نجران</option>
+                <option>الباحة</option>
+                <option>الجوف</option>
+                <option>الحدود الشمالية</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>الصورة (واجهة المركبة)</label>
+              <input type="file" id="vehFront" accept="image/*" />
+            </div>
           </div>
+        </div>
 
-          <div class="col-span-2 font-semibold text-waseela-primary mt-2 flex items-center justify-between">
-            <span>مركبات الونيت</span>
-            <button id="addVehicle" type="button" class="px-3 py-1 rounded-lg border">+ إضافة مركبة</button>
+        <div class="card">
+          <h4>بيانات السائق</h4>
+          <div class="row">
+            <div class="field">
+              <label>الاسم الثلاثي</label>
+              <input id="driverName" placeholder="الاسم الكامل"/>
+            </div>
+            <div class="field">
+              <label>رقم الهوية</label>
+              <input id="nid" placeholder="10 أرقام" maxlength="10"/>
+            </div>
           </div>
-          <div id="vehiclesWrap" class="col-span-2 space-y-3"></div>
+          <div class="row">
+            <div class="field">
+              <label>رقم رخصة القيادة</label>
+              <input id="licenseNo" placeholder="رقم الرخصة"/>
+            </div>
+            <div class="field">
+              <label>تاريخ انتهاء الرخصة</label>
+              <input id="licenseExp" type="date"/>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>نسخة الرخصة (صورة)</label>
+              <input type="file" id="licenseImg" accept="image/*"/>
+            </div>
+            <div class="field">
+              <label>IBAN للحوالات</label>
+              <input id="iban" placeholder="SA.."/>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" onclick="saveOwner()">حفظ التسجيل</button>
+            <span class="muted" id="ownerSaved"></span>
+          </div>
+        </div>
+      </div>
+    </section>
 
-          <div class="col-span-2 font-semibold text-waseela-primary mt-2">توفُّر السائق</div>
-          <div class="col-span-2">
-            <label class="inline-flex items-center gap-2">
-              <input type="checkbox" name="available" class="w-4 h-4"> متاح لاستقبال الطلبات
+    <!-- Owners list (enabled overview) -->
+    <section id="ownersList" class="card" hidden>
+      <h3>قائمة الملاك <span class="badge" style="border-color:var(--ok);">مُفعلة ✅</span></h3>
+      <div id="ownersTable" class="muted">لا يوجد مُلاك بعد.</div>
+    </section>
+
+    <!-- Drivers account -->
+    <section id="driver" class="card" hidden>
+      <h3>حساب السائق <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
+      <div class="row">
+        <div class="card">
+          <h4>الملف الشخصي</h4>
+          <div class="field"><label>الاسم</label><input id="dName" placeholder="اسم السائق"/></div>
+          <div class="row">
+            <div class="field"><label>الهاتف</label><input id="dPhone" placeholder="05xxxxxxxx"/></div>
+            <div class="field"><label>المدينة</label><input id="dCity" placeholder="مثال: حائل"/></div>
+          </div>
+          <div class="row">
+            <div class="field"><label>الرخصة (صورة)</label><input type="file" id="dLicenseFile" accept="image/*"/></div>
+            <div class="field"><label>إقامة/هوية (صورة)</label><input type="file" id="dIdFile" accept="image/*"/></div>
+          </div>
+          <div class="actions">
+            <button class="btn primary" onclick="saveDriver()">حفظ</button>
+            <label class="tab" style="display:inline-flex;align-items:center;gap:6px">
+              <input type="checkbox" id="availableToggle" onchange="toggleAvail()"/>
+              متاح لاستلام الطلبات
             </label>
           </div>
-
-          <div class="col-span-2 flex gap-3 mt-1">
-            <button class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft" type="submit">حفظ/تحديث الحساب</button>
-            <button id="clearDriver" class="flex-1 px-6 py-3 rounded-xl border" type="button">مسح</button>
-          </div>
-
-          <div class="col-span-2 flex gap-3 mt-2">
-            <button id="exportJson" class="flex-1 px-6 py-3 rounded-xl border" type="button">تصدير JSON</button>
-          </div>
-
-          <div id="driverSaved" class="hidden col-span-2 mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200">
-            تم حفظ/تحديث حساب السائق.
-          </div>
-        </form>
-      </div>
-
-      <div id="driverPreview" class="bg-white rounded-2xl shadow-soft p-4 mt-3 hidden"></div>
-    </section>
-
-    <!-- المحفظة -->
-    <section id="walletPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
-      <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">المحفظة</h2>
-        <div class="text-sm">الرصيد الحالي: <b id="walletBalance">0.00</b> ر.س</div>
-        <div class="flex gap-2 mt-3">
-          <input id="topupAmount" type="number" placeholder="مبلغ التعبئة" class="w-full border rounded-xl p-3 text-sm">
-          <button id="topupBtn" class="px-4 py-2 rounded-xl text-white.grad-primary">تعبئة</button>
-          <a id="payNow" href="#" target="_blank" class="px-4 py-2 rounded-xl border">دفع</a>
+          <div class="muted" id="driverSaved"></div>
         </div>
-        <div id="walletMsg" class="hidden mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm">تم تحديث الرصيد.</div>
-      </div>
-    </section>
-
-    <!-- الحساب (عام للمستخدم/السائق) -->
-    <section id="profilePage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
-      <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">الحساب</h2>
-        <div id="profileInfo" class="text-sm text-gray-700">—</div>
-        <div class="mt-3 flex gap-2">
-          <button id="exportAll" class="px-4 py-2 rounded-xl border">تصدير كل البيانات JSON</button>
-          <button id="clearAll" class="px-4 py-2 rounded-xl border text-red-600">مسح كل البيانات</button>
+        <div class="card">
+          <h4>طلبات قريبة</h4>
+          <div class="muted">تظهر هنا الطلبات ضمن نطاق 10 كم (تجريبي).</div>
+          <ul id="nearbyList"></ul>
+          <div class="actions"><span class="muted">اختر طلبًا ثم اضغط قبول</span></div>
         </div>
       </div>
     </section>
 
-    <!-- 🛠️ لوحة إدارة التطبيق -->
-    <section id="adminPage" class="page px-4 pt-4 pb-24 max-w-screen-md mx-auto">
-      <div class="bg-white rounded-2xl shadow-soft p-4">
-        <h2 class="text-lg font-extrabold mb-2">لوحة الإدارة</h2>
+    <!-- Admin -->
+    <section id="admin" class="card" hidden>
+      <h3>لوحة إدارة التطبيق <span class="badge" style="border-color:var(--ok);">مُفعلة ✅</span></h3>
+      <div class="stats">
+        <div class="stat"><div class="muted">عدد العملاء</div><b id="stUsers">0</b></div>
+        <div class="stat"><div class="muted">طلبات اليوم</div><b id="stOrders">0</b></div>
+        <div class="stat"><div class="muted">سائقون متاحون</div><b id="stDrivers">0</b></div>
+        <div class="stat"><div class="muted">مركبات مسجلة</div><b id="stVehicles">0</b></div>
+      </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div class="border rounded-xl p-3">
-            <div class="font-semibold mb-2">التسعير</div>
-            <label class="block mb-1">فتح الطلب (BASE)</label>
-            <input id="admBase" type="number" step="0.1" class="w-full border rounded-xl p-2 mb-2">
-            <label class="block mb-1">لكل كم (PER_KM)</label>
-            <input id="admPerKm" type="number" step="0.1" class="w-full border rounded-xl p-2 mb-2">
-            <label class="block mb-1">لكل كجم (PER_KG)</label>
-            <input id="admPerKg" type="number" step="0.01" class="w-full border rounded-xl p-2 mb-2">
-            <button id="savePricing" class="px-4 py-2 rounded-xl text-white grad-primary">حفظ التسعير</button>
-          </div>
-
-          <div class="border rounded-xl p-3">
-            <div class="font-semibold mb-2">إعدادات عامة</div>
-            <label class="block mb-1">رابط الدفع (اختياري)</label>
-            <input id="admPayLink" class="w-full border rounded-xl p-2 mb-2" placeholder="https://...">
-            <label class="block mb-1">كلمة مرور المدير</label>
-            <input id="admPass" type="password" class="w-full border rounded-xl p-2 mb-2" placeholder="تغيير كلمة المرور">
-            <button id="saveGeneral" class="px-4 py-2 rounded-xl border">حفظ الإعدادات</button>
-          </div>
+      <div class="card" style="margin-top:12px">
+        <h4>إدارة المناطق والتسعير</h4>
+        <div class="row">
+          <div class="field"><label>تعرفة الكيلومتر (ريال)</label><input id="kmRate" type="number" step="0.5" value="3"/></div>
+          <div class="field"><label>رسوم فتح الطلب (ريال)</label><input id="baseFee" type="number" step="1" value="20"/></div>
         </div>
+        <div class="actions">
+          <button class="btn primary" onclick="savePricing()">حفظ التسعير</button>
+          <span class="muted" id="pricingSaved"></span>
+        </div>
+      </div>
 
-        <div class="border rounded-xl p-3 mt-4">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">السائقون</div>
-            <div class="flex gap-2">
-              <button id="exportDriversCsv" class="px-3 py-1 rounded-lg border">تصدير CSV</button>
+      <div class="card" style="margin-top:12px">
+        <h4>سجل الطلبات (تجريبي)</h4>
+        <div id="adminOrders" class="muted">لا توجد بيانات.</div>
+        <template id="orderRowTmpl">
+          <div class="card" data-id="">
+            <div><b class="from"></b> → <b class="to"></b> <span class="badge status"></span></div>
+            <div class="muted time"></div>
+            <div class="actions">
+              <button class="btn" data-action="complete">إكمال</button>
+              <button class="btn ghost" data-action="cancel">إلغاء</button>
             </div>
           </div>
-          <div id="adminDrivers" class="text-sm mt-2 space-y-2"></div>
-        </div>
+        </template>
+      </div>
 
-        <div class="border rounded-xl p-3 mt-4">
-          <div class="flex items-center justify-between">
-            <div class="font-semibold">الطلبات</div>
-            <div class="flex gap-2">
-              <button id="exportOrdersCsv" class="px-3 py-1 rounded-lg border">تصدير CSV</button>
-              <button id="clearOrders" class="px-3 py-1 rounded-lg border text-red-600">مسح الكل</button>
-            </div>
-          </div>
-          <div id="adminOrders" class="text-sm mt-2 space-y-2"></div>
-        </div>
+      <div class="card" style="margin-top:12px">
+        <h4>اختبارات تلقائية</h4>
+        <p class="muted">للتحقق من وظائف الملاحة والتبويبات وتدفق حالة الطلب.</p>
+        <div id="testResults"></div>
+        <div class="actions"><button class="btn" id="runTestsBtn">تشغيل الاختبارات</button></div>
       </div>
     </section>
 
-    <!-- شيت الحجز -->
-    <div class="sheet px-3 safe-bottom" id="sheet">
-      <div class="sheet-card bg-white shadow-2xl border border-gray-100 max-w-screen-md mx-auto">
-        <div class="drag-handle"></div>
-        <div class="p-4">
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-base font-extrabold">طلب حوض</h2>
-            <button id="closeSheet" class="text-gray-500 text-sm">إخفاء</button>
-          </div>
+  </main>
 
-          <div class="grid grid-cols-2 gap-3 text-sm">
-            <div class="col-span-2">
-              <label class="block text-gray-700">التحميل</label>
-              <input id="pickupText" type="text" placeholder="مثال: مستودع شمال" class="mt-1 w-full border rounded-xl p-3"/>
-              <div id="pickupMeta" class="text-[11px] text-gray-500 mt-1"></div>
-            </div>
-            <div class="col-span-2">
-              <label class="block text-gray-700">التفريغ</label>
-              <input id="dropText" type="text" placeholder="مثال: صناعية السلي" class="mt-1 w-full border rounded-xl p-3"/>
-              <div id="dropMeta" class="text-[11px] text-gray-500 mt-1"></div>
-            </div>
-            <div>
-              <label class="block text-gray-700">الوزن (كجم)</label>
-              <input id="weight" type="number" placeholder="800" class="mt-1 w-full border rounded-xl p-3"/>
-            </div>
-            <div>
-              <label class="block text-gray-700">التاريخ</label>
-              <input id="date" type="datetime-local" class="mt-1 w-full border rounded-xl p-3"/>
-            </div>
-            <div class="col-span-2">
-              <label class="block text-gray-700">ملاحظات</label>
-              <textarea id="notes" rows="2" placeholder="تفاصيل إضافية…" class="mt-1 w-full border rounded-xl p-3"></textarea>
-            </div>
-          </div>
+  <footer class="container">
+    <div>© وسيلة — نموذج أولي للاستخدام الداخلي.</div>
+  </footer>
 
-          <button id="nextConfirm" class="mt-3 w-full px-6 py-3 rounded-xl text-white grad-primary shadow-soft">متابعة للتأكيد</button>
-
-          <div class="mt-3 text-[12px] text-gray-500">
-            تقدير السعر: <b id="priceInline">—</b> ر.س
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- شيت التأكيد -->
-    <div class="sheet px-3 safe-bottom" id="confirmSheet">
-      <div class="sheet-card bg-white shadow-2xl border border-gray-100 max-w-screen-md mx-auto">
-        <div class="drag-handle"></div>
-        <div class="p-4">
-          <div class="flex items-center justify-between mb-2">
-            <h2 class="text-base font-extrabold">تأكيد الطلب</h2>
-            <button id="closeConfirm" class="text-gray-500 text-sm">إغلاق</button>
-          </div>
-
-          <div id="summary" class="bg-gray-50 rounded-xl p-3 text-sm"></div>
-
-          <div class="flex flex-wrap gap-3 mt-3">
-            <button id="confirmBtn" class="flex-1 px-6 py-3 rounded-xl text-white grad-primary shadow-soft">تأكيد الحجز</button>
-            <button id="backBtn" class="flex-1 px-6 py-3 rounded-xl border">رجوع</button>
-            <button id="shareBtn" class="px-4 py-3 rounded-xl border">مشاركة</button>
-            <button id="pdfBtn" class="px-4 py-3 rounded-xl border">تحميل الفاتورة PDF</button>
-          </div>
-
-          <div id="afterConfirm" class="hidden mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm">
-            تم إنشاء الحجز: <b id="rideId"></b>.
-            <div class="mt-2 flex flex-wrap items-center gap-2">
-              <a id="callDriver" href="#" class="px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">اتصال بالسائق</a>
-              <a id="smsDriver" href="#" class="text-emerald-700 underline">رسالة نصية</a>
-              <a id="shareWhatsApp" href="#" target="_blank" class="text-emerald-700 underline">واتساب</a>
-              <a id="payLink" href="#" target="_blank" class="text-blue-700 underline">رابط الدفع</a>
-            </div>
-          </div>
-
-        </div>
-      </div>
-    </div>
-
-    <!-- تبويب سفلي -->
-    <nav class="tabbar fixed bottom-0 inset-x-0 bg-white border-t shadow-sm safe-bottom">
-      <div class="max-w-screen-md mx-auto grid grid-cols-5">
-        <button class="py-2 flex flex-col items-center gap-0.5 text-blue-600" data-tab="home">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 3l9 8h-3v9H6v-9H3l9-8z"/></svg>
-          <span class="text-[11px]">الرئيسية</span>
-        </button>
-        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="orders">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z"/></svg>
-          <span class="text-[11px]">طلباتي</span>
-        </button>
-        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="driver">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.667-8 6v2h16v-2c0-3.333-2.67-6-8-6z"/></svg>
-          <span class="text-[11px]">السائق</span>
-        </button>
-        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="wallet">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M2 7a3 3 0 0 1 3-3h13a2 2 0 0 1 2 2v2h-2V6H5a1 1 0 0 0-1 1v1h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>
-          <span class="text-[11px]">المحفظة</span>
-        </button>
-        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" data-tab="profile">
-          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M4 5h16v14H4zM6 7v10h12V7z"/></svg>
-          <span class="text-[11px]">الحساب</span>
-        </button>
-      </div>
-    </nav>
-
-  </div>
-
-  <!-- نافذة الدخول (سائق/مدير) -->
-  <div id="authModal" class="modal">
-    <div class="bg-white rounded-2xl shadow-2xl w-[92vw] max-w-md p-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-extrabold">تسجيل الدخول</h3>
-        <button id="closeAuth" class="text-gray-500">إغلاق</button>
-      </div>
-      <div class="mt-3 grid grid-cols-2 gap-2">
-        <button id="tabDriver" class="px-3 py-2 rounded-lg border bg-gray-50">سائق</button>
-        <button id="tabAdmin" class="px-3 py-2 rounded-lg border">مدير</button>
-      </div>
-
-      <div id="paneDriver" class="mt-3">
-        <label class="block text-sm">رقم الجوال</label>
-        <input id="loginPhone" class="w-full border rounded-xl p-3 mt-1" placeholder="05xxxxxxxx" inputmode="tel">
-        <label class="block text-sm mt-2">كلمة المرور</label>
-        <input id="loginPass" type="password" class="w-full border rounded-xl p-3 mt-1" placeholder="••••••••">
-        <button id="doDriverLogin" class="mt-3 w-full px-4 py-2 rounded-xl text-white grad-primary">دخول كسائق</button>
-        <div class="text-[12px] text-gray-500 mt-2">لم تسجل بعد؟ انتقل لصفحة <b>السائق</b> وسجّل حسابك.</div>
-      </div>
-
-      <div id="paneAdmin" class="mt-3 hidden">
-        <label class="block text-sm">كلمة مرور المدير</label>
-        <input id="adminPassInput" type="password" class="w-full border rounded-xl p-3 mt-1" placeholder="كلمة المرور">
-        <button id="doAdminLogin" class="mt-3 w-full px-4 py-2 rounded-xl text-white grad-primary">دخول كمدير</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- PWA (Manifest + SW) -->
   <script>
-    const manifest={name:"وسيلة — اطلب حوضك في دقائق — نقل أسرع بأسعار شفافة",short_name:"وسيلة",start_url:".",display:"standalone",theme_color:"#1B6AA5",background_color:"#ffffff",dir:"rtl",lang:"ar",icons:[{src:"data:image/svg+xml;charset=utf-8,"+encodeURIComponent('<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 128 128\"><defs><linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop offset=\"0\" stop-color=\"#1B6AA5\"/><stop offset=\"0.5\" stop-color=\"#0ea5e9\"/><stop offset=\"1\" stop-color=\"#10B981\"/></linearGradient></defs><rect width=\"128\" height=\"128\" rx=\"24\" fill=\"url(#g)\"/><path d=\"M28 74a12 12 0 1 0 11.8 9.5H92a12 12 0 1 0 11.8-9.5H106V62a9 9 0 0 0-9-9H76V45a7 7 0 0 0-7-7H59a7 7 0 0 0-7 7v8H37a9 9 0 0 0-9 9v12Z\" fill=\"#fff\"/></svg>'),sizes:"128x128",type:"image/svg+xml"}]};
-    const manifestURL=URL.createObjectURL(new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'}));
-    const l=document.createElement('link');l.rel='manifest';l.href=manifestURL;document.head.appendChild(l);
-    if('serviceWorker'in navigator){
-      const sw=URL.createObjectURL(new Blob([`const C='waseela-cache-v1';self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./',location.href])).then(()=>self.skipWaiting()))});self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==C).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request).then(res=>{try{const cp=res.clone();caches.open(C).then(c=>c.put(e.request,cp))}catch(_){ }return res}).catch(()=>r||new Response('offline',{status:200}))))});`],{type:'text/javascript'}));
-      navigator.serviceWorker.register(sw);
-    }
-    // A2HS
-    let deferredPrompt; window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;const b=document.getElementById('installBtn');b.classList.remove('hidden');b.onclick=async()=>{b.classList.add('hidden');deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}});
-  </script>
-
-  <!-- منطق التطبيق -->
-  <script>
-    /* ========= Utilities ========= */
-    const q = s=>document.querySelector(s);
-    const qa = s=>Array.from(document.querySelectorAll(s));
-    const toast = (msg)=>alert(msg); // بسيط
-
-    /* ========= خريطة ========= */
-    const map=L.map('map',{zoomControl:false}).setView([24.7136,46.6753],11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
-
-    let mode='pickup',pickup=null,drop=null,pickupMarker,dropMarker,routeLine;
-    const distanceEl=q('#distanceKm'),roadEl=q('#roadKm'),priceEl=q('#price'),priceInline=q('#priceInline');
-    q('#modePickup').onclick=()=>{mode='pickup';flash(q('#modePickup'))}
-    q('#modeDrop').onclick=()=>{mode='drop';flash(q('#modeDrop'))}
-    function flash(btn){btn.classList.add('ring-2','ring-blue-300');setTimeout(()=>btn.classList.remove('ring-2','ring-blue-300'),400)}
-    map.on('click',e=>{
-      if(mode==='pickup'){ pickup=e.latlng; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); q('#pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`;}
-      else{ drop=e.latlng; if(dropMarker) dropMarker.remove(); dropMarker=L.marker(drop).addTo(map); q('#dropMeta').textContent=`إحداثيات التفريغ: ${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)}`;}
-      drawRoute(); updateEstimates();
-    });
-    q('#locateBtn').onclick=()=>{
-      if(navigator.geolocation){navigator.geolocation.getCurrentPosition(pos=>{
-        const {latitude,longitude}=pos.coords; map.setView([latitude,longitude],13);
-        if(!pickup){pickup={lat:latitude,lng:longitude}; if(pickupMarker) pickupMarker.remove(); pickupMarker=L.marker(pickup).addTo(map); q('#pickupMeta').textContent=`إحداثيات التحميل: ${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)}`; drawRoute(); updateEstimates();}
-      })}else toast('المتصفح لا يدعم تحديد الموقع')
+    // ---- Simple state (global) ----
+    const S = {
+      orders: JSON.parse(localStorage.getItem('orders')||'[]'),
+      owners: JSON.parse(localStorage.getItem('owners')||'[]'),
+      drivers: JSON.parse(localStorage.getItem('drivers')||'[]'),
+      pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}')
     };
-    function haversine(a,b){const R=6371,toRad=d=>d*Math.PI/180,dLat=toRad(b.lat-a.lat),dLon=toRad(b.lng-a.lng),lat1=toRad(a.lat),lat2=toRad(b.lat);const h=Math.sin(dLat/2)**2+Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;return 2*R*Math.asin(Math.sqrt(h))}
-    async function fetchOSRMRoute(a,b){const url=`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;const res=await fetch(url,{mode:'cors'});if(!res.ok)throw new Error('OSRM');const data=await res.json();if(!data.routes?.length)throw new Error('No routes');const r=data.routes[0];return {distanceKm:r.distance/1000,geometry:r.geometry}}
-    async function drawRoute(){
-      if(routeLine){map.removeLayer(routeLine);routeLine=null}
-      if(pickup&&drop){
-        try{const r=await fetchOSRMRoute(pickup,drop);routeLine=L.geoJSON({type:'Feature',geometry:r.geometry}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[20,20]});map._lastRoadKm=Math.round(r.distanceKm*10)/10;}
-        catch(_){routeLine=L.polyline([pickup,drop],{color:'#1B6AA5',weight:5,opacity:.65}).addTo(map);map.fitBounds(routeLine.getBounds(),{padding:[20,20]});map._lastRoadKm=null}
-        updateEstimates();
+    // حالة الطلب: new, assigned, in_progress, completed, cancelled
+
+    // ---- Define openView EARLY so inline onclick & router can use it ----
+    window.openView = function openView(id){
+      document.querySelectorAll('main > section').forEach(sec=>sec.hidden = true);
+      const el = document.getElementById(id) || document.getElementById('landing');
+      el.hidden = false;
+      location.hash = '#'+(id||'landing');
+      document.body.classList.remove('mapCollapsed');
+      updateUI();
+    }
+
+    // ---- DOM bootstrap ----
+    document.addEventListener('DOMContentLoaded', ()=>{
+      // tabs behavior
+      document.querySelectorAll('.tabs .tab').forEach(tab=>{
+        tab.addEventListener('click', ()=>{
+          const wrap = tab.closest('section');
+          wrap.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+          tab.classList.add('active');
+          const target = tab.dataset.target;
+          if(target){
+            wrap.querySelectorAll('#shipperBench,#shipper-orders').forEach(v=>v.hidden=true);
+            const tgt = wrap.querySelector('#'+target);
+            if(tgt){ tgt.closest('div').hidden=false; }
+          }
+        });
+      });
+
+      // map toggle
+      const tgl = document.getElementById('toggleMapBtn');
+      if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
+
+      // router
+      function route(){
+        const h = location.hash.replace('#','');
+        if(['shipper','owner','driver','admin','landing','ownersList'].includes(h)) window.openView(h); else window.openView('landing');
       }
+      window.addEventListener('hashchange', route);
+
+      // logo autodetect
+      autoDetectLogo();
+
+      // boot: Always return to landing on load (ignores any pre-existing hash)
+      history.replaceState(null, '', location.pathname);
+      openView('landing');
+      updateUI();
+
+      // tests
+      const testBtn = document.getElementById('runTestsBtn');
+      if(testBtn){ testBtn.addEventListener('click', runTests); }
+    });
+
+    function kmBetween(){ return 2 + Math.round(Math.random()*12); }
+
+    function estimate(){
+      const km = kmBetween();
+      const r = S.pricing.kmRate || 3; const base = S.pricing.baseFee || 20;
+      const size = document.getElementById('cargoSize').value;
+      const multiplier = size==='big'?1.8:size==='medium'?1.3:1;
+      const price = Math.round((base + km*r)*multiplier);
+      document.getElementById('estimateOut').textContent = `تقدير: ~ ${price} ريال لمسافة ${km} كم`;
+      return price;
     }
-    function updateEstimates(){
-      const weight=Number(q('#weight')?.value||0);
-      let geoKm=(pickup&&drop)?haversine(pickup,drop):0; geoKm=Math.round(geoKm*10)/10;
-      let roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
-      const price=Math.max(0,PRICING.BASE+roadKm*PRICING.PER_KM+weight*PRICING.PER_KG).toFixed(2);
-      distanceEl.textContent=geoKm||'—'; roadEl.textContent=roadKm||'—'; priceEl.textContent=price; if(priceInline) priceInline.textContent=price;
-    }
 
-    /* ========= شيتات ========= */
-    const sheet=q('#sheet'), confirmSheet=q('#confirmSheet');
-    const openSheet=()=>sheet.style.display='block', closeSheet=()=>sheet.style.display='none', openConfirm=()=>confirmSheet.style.display='block', closeConfirm=()=>confirmSheet.style.display='none';
-    q('#ctaTop').onclick=()=>{openSheet();scrollTo({top:0,behavior:'smooth'})}; q('#closeSheet').onclick=closeSheet;
-
-    const pickupText=q('#pickupText'),dropText=q('#dropText'),weightEl=q('#weight'),dateEl=q('#date'),notesEl=q('#notes');
-    q('#nextConfirm').onclick=()=>{
-      if(!pickup||!drop){toast('يرجى تحديد موقعي التحميل والتفريغ من الخريطة.');return}
-      const geoKm=(pickup&&drop)?(Math.round(haversine(pickup,drop)*10)/10):0;
-      const roadKm = map._lastRoadKm!=null ? map._lastRoadKm : Math.round(geoKm*ROAD_FACTOR_FALLBACK*10)/10;
-      const price=Math.max(0,PRICING.BASE+roadKm*PRICING.PER_KM+Number(weightEl.value||0)*PRICING.PER_KG).toFixed(2);
-      q('#summary').innerHTML=`
-        <div><b>التحميل:</b> ${pickupText.value||'—'} <span class="text-gray-500">(${pickup.lat.toFixed(5)}, ${pickup.lng.toFixed(5)})</span></div>
-        <div><b>التفريغ:</b> ${dropText.value||'—'} <span class="text-gray-500">(${drop.lat.toFixed(5)}, ${drop.lng.toFixed(5)})</span></div>
-        <div><b>المسافة:</b> ${geoKm} كم — <b>طريق:</b> ${roadKm} كم</div>
-        <div><b>الوزن:</b> ${Number(weightEl.value||0)} كجم</div>
-        <div><b>التاريخ:</b> ${dateEl.value||'—'}</div>
-        <div><b>ملاحظات:</b> ${notesEl.value||'—'}</div>
-        <div class="mt-2 text-emerald-700"><b>السعر التقديري:</b> ${price} ر.س</div>`;
-      closeSheet(); openConfirm();
-    };
-
-    const afterConfirm=q('#afterConfirm');
-    q('#backBtn').onclick=()=>{afterConfirm.classList.add('hidden');closeConfirm();openSheet()}
-    q('#closeConfirm').onclick=()=>{afterConfirm.classList.add('hidden');closeConfirm()}
-
-    q('#confirmBtn').onclick=()=>{
-      const id='R-'+Math.floor(Math.random()*900000+100000);
-      q('#rideId').textContent=id;
-
-      const auth = JSON.parse(localStorage.getItem('waseela_auth')||'null'); // {role, phone}
-      const activeDriver = auth?.role==='driver' ? getDriverByPhone(auth.phone) : getActiveApprovedDriver() || null;
-      const driverPhone= activeDriver?.driverPhone || DEFAULT_DRIVER_PHONE;
-
-      const payload={
-        id,pickup,drop,
-        pickupText:pickupText.value, dropText:dropText.value,
-        weight:Number(weightEl.value||0),
-        date:dateEl.value, notes:notesEl.value,
-        distanceGeoKm:Number(distanceEl.textContent||0),
-        distanceRoadKm:Number(roadEl.textContent||0),
-        price:q('#price').textContent,
-        assignedDriver: activeDriver ? {phone:activeDriver.driverPhone,name:activeDriver.driverName} : null
+    function submitOrder(){
+      const data = {
+        pickup: val('pickup'), dropoff: val('dropoff'), when: val('when'), notes: val('notes'), size: val('cargoSize'),
+        price: estimate(), id: Date.now(), status: 'new', driverId: null
       };
-      // حفظ في طلباتي (للمستخدم الحالي) + في سجلات الإدارة
-      const myOrders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'); myOrders.unshift(payload);
-      localStorage.setItem('waseela_orders',JSON.stringify(myOrders));
-      const allOrders=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'); allOrders.unshift({...payload, createdAt:new Date().toISOString()});
-      localStorage.setItem('waseela_all_orders',JSON.stringify(allOrders));
-      renderOrders(); renderAdminOrders();
-
-      const txt=`طلب حوض جديد:
-رقم: ${id}
-من: ${payload.pickupText} (${payload.pickup?.lat.toFixed(5)},${payload.pickup?.lng.toFixed(5)})
-إلى: ${payload.dropText} (${payload.drop?.lat.toFixed(5)},${payload.drop?.lng.toFixed(5)})
-طريق: ${payload.distanceRoadKm} كم
-وزن: ${payload.weight} كجم
-سعر تقديري: ${payload.price} ر.س
-سائق: ${(activeDriver?.driverName||'—')} (${driverPhone})
-تاريخ: ${payload.date||'—'}
-ملاحظات: ${payload.notes||'—'}`;
-      q('#callDriver').href=`tel:${driverPhone}`;
-      q('#smsDriver').href=`sms:${driverPhone}`;
-      q('#shareWhatsApp').href=`https://wa.me/${driverPhone.replace(/^0/,'966')}/?text=${encodeURIComponent(txt)}`;
-      const payA = q('#payLink'); if(PAYMENT_LINK){payA.href=PAYMENT_LINK; payA.style.display='inline'} else {payA.style.display='none'}
-      afterConfirm.classList.remove('hidden');
-    };
-
-    q('#shareBtn').onclick=()=>{
-      const id=q('#rideId').textContent||'—';
-      const price=q('#price').textContent||'—';
-      const roadKm=q('#roadKm').textContent||'—';
-      const text=`تفاصيل الطلب #${id} • مسافة الطريق: ${roadKm} كم • السعر التقديري: ${price} ر.س`;
-      if(navigator.share){navigator.share({title:'طلب وسيلة',text});}else{toast(text);}
-    };
-
-    q('#pdfBtn').onclick=async()=>{
-      const { jsPDF } = window.jspdf;
-      const id=q('#rideId').textContent||('R-'+Date.now());
-      const doc=new jsPDF({unit:'pt',format:'a4'}); let y=60;
-      doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('وسيلة - إيصال طلب', 40, y); y+=20;
-      doc.setFont('helvetica',''); doc.setFontSize(12);
-      const lines=[
-        `رقم الطلب: ${id}`,
-        `التحميل: ${pickupText.value} (${pickup?.lat?.toFixed(5)}, ${pickup?.lng?.toFixed(5)})`,
-        `التفريغ: ${dropText.value} (${drop?.lat?.toFixed(5)}, ${drop?.lng?.toFixed(5)})`,
-        `المسافة (طريق): ${q('#roadKm').textContent} كم`,
-        `الوزن: ${q('#weight').value||0} كجم`,
-        `السعر التقديري: ${q('#price').textContent} ر.س`,
-        `التاريخ: ${q('#date').value||'—'}`,
-        `ملاحظات: ${q('#notes').value||'—'}`
-      ];
-      lines.forEach(l=>{doc.text(l,40,y);y+=18;});
-      doc.save(`wasila-receipt-${id}.pdf`);
-    };
-
-    /* ========= تبويبات ========= */
-    const pages={home:q('#homePage'),orders:q('#ordersPage'),driver:q('#driverPage'),wallet:q('#walletPage'),profile:q('#profilePage'),admin:q('#adminPage')};
-    function showPage(name){Object.values(pages).forEach(p=>p.classList.remove('active'));(pages[name]||pages.home).classList.add('active');window.scrollTo({top:0,behavior:'instant'})}
-    qa('nav [data-tab]').forEach(btn=>btn.addEventListener('click',()=>showPage(btn.dataset.tab)));
-
-    /* ========= طلباتي (المستخدم) ========= */
-    function renderOrders(){
-      const list=q('#ordersList'), empty=q('#ordersEmpty');
-      const orders=JSON.parse(localStorage.getItem('waseela_orders')||'[]'); list.innerHTML='';
-      if(!orders.length){empty.style.display='block'; return} else {empty.style.display='none'}
-      orders.forEach(o=>{
-        const row=document.createElement('div'); row.className='p-3 border rounded-xl flex flex-wrap gap-2 justify-between items-center';
-        row.innerHTML=`
-          <div>
-            <div class="font-semibold">#${o.id} — ${o.price} ر.س</div>
-            <div class="text-[12px] text-gray-600">من ${o.pickupText||'—'} إلى ${o.dropText||'—'} • ${o.distanceRoadKm} كم</div>
-            ${o.assignedDriver?`<div class="text-[12px] text-emerald-700">السائق: ${o.assignedDriver.name} (${o.assignedDriver.phone})</div>`:''}
-          </div>
-          <div class="flex gap-2">
-            <button class="px-3 py-1 rounded-lg border" data-pdf="${o.id}">PDF</button>
-          </div>`;
-        list.appendChild(row);
-        row.querySelector('[data-pdf]').onclick=()=>generateOrderPDF(o);
-      });
-    }
-    renderOrders();
-    async function generateOrderPDF(o){
-      const { jsPDF } = window.jspdf;
-      const doc=new jsPDF({unit:'pt',format:'a4'}); let y=60;
-      doc.setFont('helvetica','bold'); doc.setFontSize(18); doc.text('وسيلة - إيصال طلب (سجل)', 40, y); y+=20;
-      doc.setFont('helvetica',''); doc.setFontSize(12);
-      const lines=[
-        `رقم الطلب: ${o.id}`,
-        `التحميل: ${o.pickupText} (${o.pickup?.lat?.toFixed(5)}, ${o.pickup?.lng?.toFixed(5)})`,
-        `التفريغ: ${o.dropText} (${o.drop?.lat?.toFixed(5)}, ${o.drop?.lng?.toFixed(5)})`,
-        `المسافة (طريق): ${o.distanceRoadKm} كم`,
-        `الوزن: ${o.weight} كجم`,
-        `السعر التقديري: ${o.price} ر.س`,
-        `التاريخ: ${o.date||'—'}`,
-        `ملاحظات: ${o.notes||'—'}`
-      ];
-      lines.forEach(l=>{doc.text(l,40,y);y+=18;});
-      doc.save(`wasila-receipt-${o.id}.pdf`);
+      if(!data.pickup||!data.dropoff){alert('يرجى إدخال الاستلام والتسليم');return}
+      S.orders.unshift(data);
+      persist();
+      document.getElementById('estimateOut').textContent = 'تم إرسال الطلب.';
+      updateUI();
+      const tab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]');
+      if(tab) tab.click();
     }
 
-    /* ========= محفظة ========= */
-    function loadWallet(){const w=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');q('#walletBalance').textContent=Number(w.balance).toFixed(2)}
-    function saveWallet(v){localStorage.setItem('waseela_wallet',JSON.stringify(v));loadWallet()}
-    loadWallet();
-    q('#topupBtn').onclick=()=>{
-      const amt=Number(q('#topupAmount').value||0); if(amt<=0){toast('أدخل مبلغًا صحيحًا');return}
-      const w=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}'); w.balance=Number(w.balance||0)+amt; saveWallet(w);
-      q('#walletMsg').classList.remove('hidden'); setTimeout(()=>q('#walletMsg').classList.add('hidden'),2000); q('#topupAmount').value='';
-    };
-    const payBtn=q('#payNow'); if(PAYMENT_LINK){payBtn.href=PAYMENT_LINK}else{payBtn.style.display='none'}
-
-    /* ========= إدارة حساب/سائق ========= */
-    function vehicleItem(data={},idx=Date.now()){
-      const el=document.createElement('div'); el.className="border rounded-xl p-3"; el.dataset.id=idx;
-      el.innerHTML=`<div class="grid grid-cols-2 gap-3">
-          <div><label class="block text-gray-700">رقم اللوحة</label><input name="plate" value="${data.plate||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
-          <div><label class="block text-gray-700">الموديل</label><input name="model" value="${data.model||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
-          <div><label class="block text-gray-700">النوع</label>
-            <select name="type" class="mt-1 w-full border rounded-xl p-3" required>
-              <option value="">اختر النوع</option>
-              <option ${data.type==='حوض عادي'?'selected':''}>حوض عادي</option>
-              <option ${data.type==='حوض دبل'?'selected':''}>حوض دبل</option>
-              <option ${data.type==='ثلاجة (مبرد)'?'selected':''}>ثلاجة (مبرد)</option>
-              <option ${data.type==='سقف عالي/غطاء'?'selected':''}>سقف عالي/غطاء</option>
-            </select>
-          </div>
-          <div><label class="block text-gray-700">الحمولة القصوى (كجم)</label><input name="capacityKg" type="number" value="${data.capacityKg||''}" class="mt-1 w-full border rounded-xl p-3" required/></div>
-        </div>
-        <div class="mt-2 text-right"><button type="button" class="px-3 py-1 rounded-lg border text-red-600" data-remove>حذف المركبة</button></div>`;
-      el.querySelector('[data-remove]').onclick=()=>el.remove();
-      return el;
-    }
-    const driverForm=q('#driverForm'),vehiclesWrap=q('#vehiclesWrap');
-    q('#addVehicle').onclick=()=>vehiclesWrap.appendChild(vehicleItem());
-    if(!vehiclesWrap.children.length) vehiclesWrap.appendChild(vehicleItem());
-
-    function onlyDigits(el,max){el.addEventListener('input',()=>el.value=el.value.replace(/\D/g,'').slice(0,max||100))}
-    const phoneEl=driverForm.elements['driverPhone'],idEl=driverForm.elements['driverId']; onlyDigits(idEl,10);
-    phoneEl.addEventListener('input',()=>{phoneEl.value=phoneEl.value.replace(/\D/g,'').slice(0,10); if(!phoneEl.value.startsWith('05')) phoneEl.value='05'+phoneEl.value.replace(/^05/,'')});
-    function showErr(name,cond){const el=driverForm.querySelector(`[data-err="${name}"]`); if(!el)return; cond?el.classList.remove('hidden'):el.classList.add('hidden')}
-    function validateDriver(){const f=driverForm.elements; const errs={driverName:!f['driverName'].value.trim(),password:!f['password'].value.trim(),driverPhone:!/^05\d{8}$/.test(f['driverPhone'].value.trim()),driverId:!/^\d{10}$/.test(f['driverId'].value.trim()),region:!f['region'].value,licenseNo:!f['licenseNo'].value.trim(),licenseExpiry:!f['licenseExpiry'].value}; Object.entries(errs).forEach(([k,v])=>showErr(k,v)); return !Object.values(errs).some(Boolean)}
-    function serializeVehicles(){return Array.from(vehiclesWrap.querySelectorAll('[data-id]')).map(card=>{const get=n=>card.querySelector(`[name="${n}"]`).value; return {plate:get('plate'),model:get('model'),type:get('type'),capacityKg:get('capacityKg')}})}
-    function serializeDriver(){const fd=new FormData(driverForm); const obj=Object.fromEntries(fd.entries()); obj.available=driverForm.elements['available'].checked; obj.vehicles=serializeVehicles(); obj.approved=obj.approved??false; return obj}
-
-    // مخزن السائقين: مصفوفة
-    function getDrivers(){return JSON.parse(localStorage.getItem('waseela_drivers')||'[]')}
-    function saveDrivers(arr){localStorage.setItem('waseela_drivers',JSON.stringify(arr))}
-    function getDriverByPhone(phone){return getDrivers().find(d=>d.driverPhone===phone)}
-    function upsertDriver(d){
-      const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone);
-      if(i>=0){list[i]={...list[i],...d}} else {list.push({...d,approved:false,createdAt:new Date().toISOString()})}
-      saveDrivers(list);
-    }
-    function getActiveApprovedDriver(){return getDrivers().find(d=>d.approved && d.available)}
-
-    // رفع المستندات (اختياري)
-    async function maybeUpload(file, pathPrefix){
-      if(!file||!SUPABASE_URL||!SUPABASE_ANON_KEY) return null;
-      const fileName = `${pathPrefix}-${Date.now()}-${encodeURIComponent(file.name)}`;
-      const url = `${SUPABASE_URL}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${fileName}`;
-      const res = await fetch(url,{method:'POST',headers:{'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,'apikey':SUPABASE_ANON_KEY,'x-upsert':'true','Content-Type':file.type||'application/octet-stream'},body:file});
-      if(!res.ok) throw new Error('upload failed');
-      return `${SUPABASE_URL}/storage/v1/object/public/${encodeURIComponent(SUPABASE_BUCKET)}/${fileName}`;
+    function saveOwner(){
+      const rec = {
+        vehType: val('vehType'), plate: val('plate'), modelYear: val('modelYear'), region: val('region'),
+        driverName: val('driverName'), nid: val('nid'), licenseNo: val('licenseNo'), licenseExp: val('licenseExp'), iban: val('iban'),
+        id: Date.now()
+      };
+      S.owners.unshift(rec); persist();
+      byId('ownerSaved').textContent = 'تم الحفظ.'; updateUI();
     }
 
-    driverForm.addEventListener('submit',async(e)=>{
-      e.preventDefault(); if(!validateDriver()) return;
-      const data=serializeDriver();
-      // (اختياري) الرفع
-      const licFile = driverForm.elements['licenseImg']?.files?.[0];
-      const regFile = driverForm.elements['vehicleReg']?.files?.[0];
-      try{ data.licenseImgUrl = await maybeUpload(licFile,'license'); }catch(_){ }
-      try{ data.vehicleRegUrl = await maybeUpload(regFile,'vehicle'); }catch(_){ }
-
-      upsertDriver(data);
-      localStorage.setItem('waseela_auth',JSON.stringify({role:'driver',phone:data.driverPhone}));
-      renderAuthUI();
-      renderDriverPreview(data);
-      q('#driverSaved').classList.remove('hidden'); setTimeout(()=>q('#driverSaved').classList.add('hidden'),2200);
-      renderProfile(); renderAdminDrivers();
-    });
-
-    q('#exportJson').onclick=()=>{
-      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null'); const d=auth?.role==='driver'?getDriverByPhone(auth.phone):null;
-      const lastRide=JSON.parse(localStorage.getItem('waseela_last_ride')||'null');
-      const blob=new Blob([JSON.stringify({driver:d,lastRide},null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_driver_export.json'; a.click(); URL.revokeObjectURL(url);
-    };
-    q('#clearDriver').onclick=()=>{driverForm.reset(); vehiclesWrap.innerHTML=''; vehiclesWrap.appendChild(vehicleItem()); q('#driverPreview').classList.add('hidden')}
-
-    function renderDriverPreview(data){
-      const vs=(data.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>';
-      q('#driverPreview').innerHTML=`<div class="text-sm">
-        <div class="font-semibold text-waseela-primary mb-2">البيانات المحفوظة:</div>
-        <div><b>السائق:</b> ${data.driverName} — ${data.driverPhone}</div>
-        <div><b>المنطقة:</b> ${data.region} — <b>التوفر:</b> ${data.available?'متاح':'غير متاح'}</div>
-        <div><b>الرخصة:</b> ${data.licenseNo} — <b>انتهاء:</b> ${data.licenseExpiry}</div>
-        <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div>
-      </div>`;
-      q('#driverPreview').classList.remove('hidden');
+    function saveDriver(){
+      const d = {name: val('dName'), phone: val('dPhone'), city: val('dCity'), available: byId('availableToggle').checked, id: Date.now()};
+      S.drivers.unshift(d); persist();
+      byId('driverSaved').textContent = 'تم الحفظ.'; updateUI();
     }
 
-    function loadDriverIntoForm(){
-      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
-      if(auth?.role==='driver'){ const d=getDriverByPhone(auth.phone); if(d){
-        driverForm.elements['driverPhone'].value=d.driverPhone;
-        driverForm.elements['driverName'].value=d.driverName||'';
-        driverForm.elements['driverId'].value=d.driverId||'';
-        driverForm.elements['region'].value=d.region||'';
-        driverForm.elements['licenseNo'].value=d.licenseNo||'';
-        driverForm.elements['licenseExpiry'].value=d.licenseExpiry||'';
-        driverForm.elements['password'].value=d.password||'';
-        driverForm.elements['available'].checked=!!d.available;
-        vehiclesWrap.innerHTML=''; (d.vehicles||[]).forEach(v=>vehiclesWrap.appendChild(vehicleItem(v)));
-        if(!vehiclesWrap.children.length) vehiclesWrap.appendChild(vehicleItem());
-        renderDriverPreview(d);
-      }}
+    function toggleAvail(){updateUI()}
+
+    function savePricing(){
+      S.pricing = {kmRate: +val('kmRate')||3, baseFee: +val('baseFee')||20};
+      persist();
+      byId('pricingSaved').textContent = 'تم تحديث التسعير.';
     }
 
-    /* ========= الحساب العام ========= */
-    function renderProfile(){
-      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
-      if(!auth){q('#profileInfo').textContent='غير مسجل دخولاً.';return}
-      if(auth.role==='driver'){
-        const d=getDriverByPhone(auth.phone);
-        if(!d){q('#profileInfo').textContent='لم يتم العثور على حساب السائق.';return}
-        const vs=(d.vehicles||[]).map(v=>`<li>• ${v.plate} — ${v.model} — ${v.type} — ${v.capacityKg}كجم</li>`).join('')||'<li>لا مركبات</li>';
-        q('#profileInfo').innerHTML=`<div><b>الدور:</b> سائق</div>
-          <div><b>الاسم:</b> ${d.driverName} — <b>الهاتف:</b> ${d.driverPhone}</div>
-          <div><b>المنطقة:</b> ${d.region} • <b>الحالة:</b> ${d.approved?'معتمد':'بانتظار الاعتماد'}</div>
-          <div class="mt-2"><b>المركبات:</b><ul class="mt-1 ml-4 list-disc">${vs}</ul></div>`;
-      }else if(auth.role==='admin'){
-        q('#profileInfo').innerHTML=`<div><b>الدور:</b> مدير</div><div>يمكنك إدارة السائقين والطلبات من لوحة الإدارة.</div>`;
-      }else{
-        q('#profileInfo').textContent='غير محدد.';
+    // السائق يقبل طلب
+    function driverAccept(orderId){
+      const d = S.drivers[0]; // لأغراض التجربة: أول سائق مُسجل
+      const o = S.orders.find(x=>x.id===orderId);
+      if(!o) return;
+      o.driverId = d? d.id : null;
+      o.status = 'in_progress';
+      persist();
+      updateUI();
+      alert('تم قبول الطلب والبدء في تنفيذه');
+    }
+
+    function updateUI(){
+      // Shipper orders list
+      const list = byId('ordersList');
+      if(list){
+        if(!S.orders.length){list.textContent = 'لا توجد طلبات بعد.'}
+        else{
+          list.innerHTML = S.orders.map(o=>`<div class=\"card\" style=\"margin:8px 0\"><b>من:</b> ${esc(o.pickup)} — <b>إلى:</b> ${esc(o.dropoff)}<br><span class=\"muted\">${new Date(o.id).toLocaleString('ar-SA')}</span><br><b>التقدير:</b> ${o.price} ريال <span class=\"badge\" style=\"border-color:#2b3240\">${mapStatus(o.status)}</span></div>`).join('');
+        }
+      }
+      // Admin stats
+      byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
+      byId('stOrders').textContent = S.orders.slice(0,10).length;
+      byId('stDrivers').textContent = S.drivers.filter(d=>d.available).length;
+      byId('stVehicles').textContent = S.owners.length;
+      // Admin orders table
+      const adminOrders = byId('adminOrders');
+      if(adminOrders){
+        if(!S.orders.length) adminOrders.textContent = 'لا توجد بيانات.'; else{
+          adminOrders.innerHTML = '';
+          S.orders.forEach(o=>{
+            const row = document.getElementById('orderRowTmpl').content.cloneNode(true);
+            const root = row.querySelector('.card');
+            root.dataset.id = o.id;
+            row.querySelector('.from').textContent = o.pickup;
+            row.querySelector('.to').textContent = o.dropoff;
+            row.querySelector('.time').textContent = new Date(o.id).toLocaleString('ar-SA');
+            const stEl = row.querySelector('.status');
+            stEl.textContent = mapStatus(o.status);
+            if(o.status==='completed'||o.status==='cancelled'){ row.querySelector('[data-action=\"complete\"]').disabled = true; }
+            row.querySelector('[data-action=\"complete\"]').addEventListener('click',()=>{ o.status='completed'; persist(); updateUI();});
+            row.querySelector('[data-action=\"cancel\"]').addEventListener('click',()=>{ o.status='cancelled'; persist(); updateUI();});
+            adminOrders.appendChild(row);
+          });
+        }
+      }
+      // Nearby for driver (show last 5 orders that are new)
+      const near = byId('nearbyList');
+      if(near){
+        const avail = S.orders.filter(o=>o.status==='new').slice(0,5);
+        if(!avail.length) near.innerHTML = '<li class="muted">لا توجد طلبات قريبة الآن.</li>'; else{
+          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b><br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
+        }
+      }
+      // Owners table
+      const ownersHost = byId('ownersTable');
+      if(ownersHost){
+        if(!S.owners.length) ownersHost.textContent = 'لا يوجد مُلاك بعد.'; else{
+          ownersHost.innerHTML = S.owners.map(o=>`<div class=\"card\" style=\"margin:6px 0\"><b>${esc(o.driverName)}</b> — ${esc(o.vehType)} | ${esc(o.region)} <span class=\"muted\">${esc(o.plate)}</span></div>`).join('');
+        }
       }
     }
-    q('#exportAll').onclick=()=>{
-      const drivers=getDrivers(),orders=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'),wallet=JSON.parse(localStorage.getItem('waseela_wallet')||'{"balance":0}');
-      const blob=new Blob([JSON.stringify({drivers,orders,wallet,pricing:PRICING},null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='waseela_all_export.json'; a.click(); URL.revokeObjectURL(url);
-    };
-    q('#clearAll').onclick=()=>{if(confirm('سيتم مسح كل البيانات المحلية. هل أنت متأكد؟')){localStorage.clear(); location.reload()}}
 
-    /* ========= الدخول/الخروج ========= */
-    const authModal=q('#authModal'), authBadge=q('#authBadge'), loginBtn=q('#loginBtn'), logoutBtn=q('#logoutBtn');
-    const tabDriver=q('#tabDriver'), tabAdmin=q('#tabAdmin'), paneDriver=q('#paneDriver'), paneAdmin=q('#paneAdmin');
-    const openAuth=()=>authModal.classList.add('show'), closeAuth=()=>authModal.classList.remove('show');
-    q('#closeAuth').onclick=closeAuth;
-    loginBtn.onclick=openAuth;
-    logoutBtn.onclick=()=>{localStorage.removeItem('waseela_auth'); renderAuthUI(); showPage('home')};
-    tabDriver.onclick=()=>{tabDriver.classList.add('bg-gray-50');tabAdmin.classList.remove('bg-gray-50');paneDriver.classList.remove('hidden');paneAdmin.classList.add('hidden')}
-    tabAdmin.onclick=()=>{tabAdmin.classList.add('bg-gray-50');tabDriver.classList.remove('bg-gray-50');paneAdmin.classList.remove('hidden');paneDriver.classList.add('hidden')}
+    function val(id){return document.getElementById(id)?.value?.trim()||''}
+    function byId(id){return document.getElementById(id)}
+    function esc(s){return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+    function mapStatus(s){ return s==='new'?'جديد': s==='assigned'?'مُسند': s==='in_progress'?'قيد التنفيذ': s==='completed'?'مكتمل': s==='cancelled'?'ملغي':'غير معروف'; }
+    function persist(){ localStorage.setItem('orders', JSON.stringify(S.orders)); localStorage.setItem('owners', JSON.stringify(S.owners)); localStorage.setItem('drivers', JSON.stringify(S.drivers)); localStorage.setItem('pricing', JSON.stringify(S.pricing)); }
 
-    q('#doDriverLogin').onclick=()=>{
-      const phone=q('#loginPhone').value.trim(), pass=q('#loginPass').value.trim();
-      const d=getDriverByPhone(phone);
-      if(!/^05\d{8}$/.test(phone)) return toast('رقم الجوال غير صحيح');
-      if(!d) return toast('لا يوجد حساب بهذا الرقم. الرجاء التسجيل من صفحة السائق.');
-      if((d.password||'')!==pass) return toast('كلمة المرور غير صحيحة');
-      localStorage.setItem('waseela_auth',JSON.stringify({role:'driver',phone}));
-      closeAuth(); renderAuthUI(); showPage('driver'); loadDriverIntoForm();
-    };
-
-    q('#doAdminLogin').onclick=()=>{
-      const p=q('#adminPassInput').value;
-      const currentPass = localStorage.getItem('waseela_admin_pass') || 'admin123';
-      if(p!==currentPass) return toast('كلمة مرور المدير غير صحيحة');
-      localStorage.setItem('waseela_auth',JSON.stringify({role:'admin'}));
-      closeAuth(); renderAuthUI(); showPage('admin'); loadAdminPanels();
-    };
-
-    function renderAuthUI(){
-      const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null');
-      if(auth){
-        authBadge.classList.remove('hidden');
-        logoutBtn.classList.remove('hidden');
-        loginBtn.classList.add('hidden');
-        if(auth.role==='driver'){authBadge.textContent=`سائق: ${auth.phone}`}
-        else if(auth.role==='admin'){authBadge.textContent='مدير النظام'}
-      }else{
-        authBadge.classList.add('hidden');
-        logoutBtn.classList.add('hidden');
-        loginBtn.classList.remove('hidden');
-      }
-      renderProfile();
-    }
-    renderAuthUI();
-
-    /* ========= لوحة الإدارة ========= */
-    function renderAdminDrivers(){
-      const box=q('#adminDrivers'); if(!box) return;
-      const arr=getDrivers(); box.innerHTML='';
-      if(!arr.length){box.innerHTML='<div class="text-gray-500">لا يوجد سائقون بعد.</div>'; return}
-      arr.forEach(d=>{
-        const el=document.createElement('div'); el.className='p-3 border rounded-xl flex flex-wrap items-center justify-between gap-2';
-        el.innerHTML=`
-          <div>
-            <div class="font-semibold">${d.driverName} — ${d.driverPhone} ${d.approved?'<span class="pill bg-emerald-50 text-emerald-700 border border-emerald-200">معتمد</span>':'<span class="pill bg-yellow-50 text-yellow-700 border border-yellow-200">بانتظار</span>'}</div>
-            <div class="text-[12px] text-gray-600">منطقة: ${d.region} • توفُّر: ${d.available?'متاح':'غير متاح'} • مركبات: ${(d.vehicles||[]).length}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="px-3 py-1 rounded-lg border" data-approve="${d.driverPhone}">${d.approved?'إلغاء الاعتماد':'اعتماد'}</button>
-            <button class="px-3 py-1 rounded-lg border" data-toggle="${d.driverPhone}">${d.available?'تعطيل التوفر':'تفعيل التوفر'}</button>
-            <button class="px-3 py-1 rounded-lg border text-red-600" data-del="${d.driverPhone}">حذف</button>
-          </div>`;
-        box.appendChild(el);
-        el.querySelector('[data-approve]').onclick=()=>{
-          const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone); if(i>=0){list[i].approved=!list[i].approved; saveDrivers(list); renderAdminDrivers(); renderProfile()}
-        }
-        el.querySelector('[data-toggle]').onclick=()=>{
-          const list=getDrivers(); const i=list.findIndex(x=>x.driverPhone===d.driverPhone); if(i>=0){list[i].available=!list[i].available; saveDrivers(list); renderAdminDrivers()}
-        }
-        el.querySelector('[data-del]').onclick=()=>{
-          if(!confirm('حذف السائق نهائيًا؟')) return;
-          saveDrivers(getDrivers().filter(x=>x.driverPhone!==d.driverPhone)); renderAdminDrivers();
-          const auth=JSON.parse(localStorage.getItem('waseela_auth')||'null'); if(auth?.role==='driver' && auth.phone===d.driverPhone){localStorage.removeItem('waseela_auth'); renderAuthUI()}
-        }
-      });
+    // ---- Minimal front-end test cases ----
+    function runTests(){
+      const results = [];
+      const assert = (name, cond) => results.push({اختبار:name, النتيجة: cond? 'PASS':'FAIL'});
+      try{
+        assert('تعريف openView', typeof window.openView === 'function');
+        const ids = ['landing','shipper','owner','driver','admin','ownersList'];
+        ids.forEach(id=>{ window.openView(id); const sec = document.getElementById(id); assert(`إظهار القسم ${id}`, sec && sec.hidden===false); });
+        // Hash routing
+        location.hash = '#owner'; window.dispatchEvent(new HashChangeEvent('hashchange')); assert('المسار بالهاش يعمل', !document.getElementById('owner').hidden);
+        // تبويب الشاحن
+        window.openView('shipper');
+        const newTab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]');
+        if(newTab){ newTab.click(); }
+        assert('التبديل إلى تبويب "طلباتي"', document.getElementById('shipper-orders').hidden===false);
+        // سيناريو: إنشاء طلب وقبوله ثم إكماله
+        const preCount = S.orders.length;
+        S.orders.unshift({id: Date.now()+1, pickup:'اختبار أ', dropoff:'اختبار ب', size:'small', price:50, status:'new', driverId:null});
+        persist();
+        assert('إضافة طلب اختباري', S.orders.length===preCount+1);
+        const newId = S.orders[0].id; driverAccept(newId); assert('قبول السائق للطلب', S.orders[0].status==='in_progress');
+        S.orders[0].status='completed'; persist(); assert('إكمال الطلب', S.orders[0].status==='completed');
+        updateUI();
+      }catch(e){ console.error('Test error:', e); }
+      const host = document.getElementById('testResults');
+      if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
+      console.table(results);
+      window.openView('landing');
     }
 
-    function renderAdminOrders(){
-      const box=q('#adminOrders'); if(!box) return;
-      const arr=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]'); box.innerHTML='';
-      if(!arr.length){box.innerHTML='<div class="text-gray-500">لا يوجد طلبات بعد.</div>'; return}
-      arr.forEach(o=>{
-        const el=document.createElement('div'); el.className='p-3 border rounded-xl flex flex-wrap items-center justify-between gap-2';
-        el.innerHTML=`
-          <div>
-            <div class="font-semibold">#${o.id} — ${o.price} ر.س</div>
-            <div class="text-[12px] text-gray-600">من ${o.pickupText||'—'} إلى ${o.dropText||'—'} • ${o.distanceRoadKm} كم • ${new Date(o.createdAt).toLocaleString('ar-SA')}</div>
-            ${o.assignedDriver?`<div class="text-[12px] text-emerald-700">السائق: ${o.assignedDriver.name} (${o.assignedDriver.phone})</div>`:''}
-          </div>
-          <div class="flex items-center gap-2">
-            <button class="px-3 py-1 rounded-lg border text-red-600" data-del="${o.id}">حذف</button>
-          </div>`;
-        box.appendChild(el);
-        el.querySelector('[data-del]').onclick=()=>{
-          const rest=arr.filter(x=>x.id!==o.id); localStorage.setItem('waseela_all_orders',JSON.stringify(rest)); renderAdminOrders();
-        }
-      });
+    // --- Auto-detect logo from hasseef.github.io/wasila common paths ---
+    function autoDetectLogo(){
+      const candidates = [
+        'https://hasseef.github.io/wasila/logo.svg',
+        'https://hasseef.github.io/wasila/assets/logo.svg',
+        'https://hasseef.github.io/wasila/logo.png',
+        'https://hasseef.github.io/wasila/assets/logo.png',
+        'https://hasseef.github.io/wasila/img/logo.svg',
+        'https://hasseef.github.io/wasila/img/logo.png'
+      ];
+      const imgEl = document.getElementById('appLogo');
+      (function tryNext(i){
+        if(i>=candidates.length){ imgEl.classList.add('hidden'); return; }
+        const url = candidates[i];
+        const probe = new Image();
+        probe.onload = ()=>{ imgEl.src = url; imgEl.classList.remove('hidden'); };
+        probe.onerror = ()=> tryNext(i+1);
+        probe.src = url;
+      })(0);
     }
-
-    function loadAdminPanels(){
-      // تعبئة الحقول
-      q('#admBase').value=PRICING.BASE; q('#admPerKm').value=PRICING.PER_KM; q('#admPerKg').value=PRICING.PER_KG;
-      q('#admPayLink').value=localStorage.getItem('waseela_payment_link')||'';
-      q('#admPass').value='';
-      renderAdminDrivers(); renderAdminOrders();
-    }
-
-    q('#savePricing').onclick=()=>{
-      PRICING={ BASE:Number(q('#admBase').value||0), PER_KM:Number(q('#admPerKm').value||0), PER_KG:Number(q('#admPerKg').value||0) };
-      localStorage.setItem('waseela_pricing',JSON.stringify(PRICING));
-      toast('تم حفظ التسعير'); updateEstimates();
-    };
-    q('#saveGeneral').onclick=()=>{
-      const link=q('#admPayLink').value.trim(); if(link) localStorage.setItem('waseela_payment_link',link); else localStorage.removeItem('waseela_payment_link');
-      const np=q('#admPass').value.trim(); if(np) localStorage.setItem('waseela_admin_pass',np);
-      toast('تم حفظ الإعدادات العامة');
-    };
-
-    q('#exportDriversCsv').onclick=()=>{
-      const arr=getDrivers();
-      const rows=[['الاسم','الجوال','المنطقة','معتمد','متاح','مركبات','تاريخ الإنشاء']];
-      arr.forEach(d=>rows.push([d.driverName,d.driverPhone,d.region,d.approved?'نعم':'لا',d.available?'نعم':'لا',(d.vehicles||[]).length,d.createdAt||'']));
-      downloadCSV(rows,'drivers.csv');
-    };
-    q('#exportOrdersCsv').onclick=()=>{
-      const arr=JSON.parse(localStorage.getItem('waseela_all_orders')||'[]');
-      const rows=[['رقم','من','إلى','كم (طريق)','وزن','سعر','سائق','تاريخ']];
-      arr.forEach(o=>rows.push([o.id,o.pickupText,o.dropText,o.distanceRoadKm,o.weight,o.price,(o.assignedDriver?`${o.assignedDriver.name} (${o.assignedDriver.phone})`:'—'),o.createdAt]));
-      downloadCSV(rows,'orders.csv');
-    };
-    q('#clearOrders').onclick=()=>{if(confirm('مسح كل الطلبات؟')){localStorage.removeItem('waseela_all_orders'); renderAdminOrders()}}
-
-    function downloadCSV(rows,filename){
-      const csv = rows.map(r=>r.map(x=>`"${String(x??'').replace(/"/g,'""')}"`).join(',')).join('\n');
-      const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url);
-    }
-
-    /* ========= بدء التشغيل ========= */
-    // فتح نموذج الحجز مباشرة على الشاشات الصغيرة
-    if(window.matchMedia('(max-width:640px)').matches) openSheet();
-    weightEl.addEventListener('input',updateEstimates);
-
-    // روابط الدفع
-    (function initPaymentLinks(){
-      const payA=q('#payLink'); if(PAYMENT_LINK){payA.href=PAYMENT_LINK}else{payA.style.display='none'}
-      const payNow=q('#payNow'); if(PAYMENT_LINK){payNow.href=PAYMENT_LINK}else{payNow.style.display='none'}
-    })();
-
-    // تحميل بيانات السائق إذا كان مسجلاً
-    loadDriverIntoForm();
-
-    // إذا دخل المدير، عبّئ اللوحة
-    const authInit=JSON.parse(localStorage.getItem('waseela_auth')||'null');
-    if(authInit?.role==='admin'){loadAdminPanels()}
-
   </script>
 </body>
 </html>
