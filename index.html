@@ -2,13 +2,16 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>وسيلة - تشغيل سيارات الحوض</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#1B6AA5" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>وسيلة — تطبيق سيارات الحوض</title>
 
   <!-- خط عربي -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Tailwind CDN + تهيئة ألوان العلامة -->
+  <!-- Tailwind CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -16,18 +19,12 @@
         extend: {
           fontFamily: { sans: ['Tajawal','ui-sans-serif','system-ui'] },
           colors: {
-            waseela: {
-              primary: '#1B6AA5',   // أزرق عميق
-              secondary: '#10B981', // زمردي
-              ink: '#0f172a',       // نص
-            }
+            waseela: { primary:'#1B6AA5', secondary:'#10B981', ink:'#0f172a' }
           },
-          boxShadow: {
-            soft: '0 10px 30px rgba(27,106,165,.08)'
-          }
+          boxShadow:{ soft:'0 12px 30px rgba(27,106,165,.12)' },
+          borderRadius:{ '2xl':'1rem' }
         }
-      },
-      darkMode: ['class','[data-theme="dark"]']
+      }
     }
   </script>
 
@@ -36,192 +33,160 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <style>
-    body{background: #f7fafc}
-    #map{height:320px;border-radius:12px}
-    .grad-primary{background: linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%)}
+    html,body { height:100%; background:#f7fafc }
+    body { font-family:"Tajawal",sans-serif }
+    #app { min-height:100%; padding-bottom: 64px } /* مساحة للتاب بار */
+    #map { height: calc(100dvh - 56px - 16px - 140px); border-radius: 16px; }
+    @media (min-width:768px){ #map { height: calc(100dvh - 56px - 16px - 180px); } }
+    .grad-primary{ background: linear-gradient(135deg,#1B6AA5 0%, #0ea5e9 50%, #10B981 100%) }
+    .safe-top{ padding-top: env(safe-area-inset-top) }
+    .safe-bottom{ padding-bottom: env(safe-area-inset-bottom) }
+    .sheet{ position: fixed; inset-inline: 0; bottom: 56px; z-index: 30 }
+    .sheet-card{ border-top-left-radius: 18px; border-top-right-radius: 18px }
+    .drag-handle{ width: 40px; height: 4px; background:#cbd5e1; border-radius: 999px; margin: 8px auto }
+    .tabbar{ height:56px }
   </style>
 </head>
-<body class="min-h-screen flex flex-col text-waseela-ink">
+<body class="text-waseela-ink">
+  <div id="app" class="safe-top">
 
-  <!-- Header -->
-  <header class="bg-white/90 backdrop-blur shadow-sm">
-    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
-      <!-- شعار وسيلة (SVG مضمّن) -->
-      <a href="#home" class="flex items-center gap-3 group">
-        <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl grad-primary shadow-soft">
-          <!-- أيقونة لوح حوض بسيط -->
-          <svg viewBox="0 0 24 24" class="w-6 h-6 text-white" fill="currentColor" aria-hidden="true">
-            <path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Zm6-4.5V6.75c0-.138.112-.25.25-.25h2.5c.138 0 .25.112.25.25V9H9Z"/>
-          </svg>
-        </span>
-        <div>
-          <div class="text-xl font-extrabold tracking-tight text-waseela-primary">وسيلة</div>
-          <div class="text-xs text-gray-500 -mt-0.5">تشغيل سيارات الحوض</div>
-        </div>
-      </a>
-
-      <nav class="flex items-center gap-4 text-sm">
-        <a href="#home" class="text-gray-600 hover:text-waseela-primary">الرئيسية</a>
-        <a href="#booking" class="text-gray-600 hover:text-waseela-primary">الحجز</a>
-        <a href="#features" class="text-gray-600 hover:text-waseela-primary">المميزات</a>
-        <a href="#about" class="text-gray-600 hover:text-waseela-primary">عن وسيلة</a>
-      </nav>
-    </div>
-  </header>
-
-  <!-- Main -->
-  <main id="home" class="flex-grow">
-    <!-- Hero -->
-    <section class="relative overflow-hidden">
-      <div class="absolute inset-0 grad-primary opacity-[.08]"></div>
-      <div class="container mx-auto px-4 py-12 md:py-16 grid md:grid-cols-2 gap-8 items-center">
-        <div>
-          <h1 class="text-3xl md:text-4xl font-extrabold leading-tight">
-            اطلب <span class="text-waseela-primary">سيارة حوض</span> لنقل بضاعتك بسرعة وسهولة
-          </h1>
-          <p class="mt-3 text-gray-600">
-            وسيلة يربطك مباشرة بسائقي الونيتات الأقرب لك، مع تسعير شفاف وتتبع مباشر للرحلة.
-          </p>
-          <div class="mt-6 flex flex-wrap gap-3">
-            <a href="#booking" class="px-6 py-3 rounded-xl text-white grad-primary shadow-soft hover:opacity-90 transition">ابدأ الحجز الآن</a>
-            <a href="#features" class="px-6 py-3 rounded-xl border border-waseela-primary/30 text-waseela-primary hover:bg-waseela-primary/5 transition">تعرّف على المميزات</a>
-          </div>
-          <!-- شارات ثقة -->
-          <div class="mt-6 flex flex-wrap items-center gap-3 text-xs text-gray-500">
-            <span class="px-3 py-1 bg-white rounded-full border">تسعير شفاف</span>
-            <span class="px-3 py-1 bg-white rounded-full border">تتبع مباشر</span>
-            <span class="px-3 py-1 bg-white rounded-full border">سائقون موثوقون</span>
+    <!-- Header (تصميم تطبيق) -->
+    <header class="px-4 py-2 bg-white shadow-sm sticky top-0 z-40">
+      <div class="max-w-screen-md mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl grad-primary shadow-soft">
+            <svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="currentColor" aria-hidden="true">
+              <path d="M3 13.5a2.5 2.5 0 1 0 2.45 2H18a2.5 2.5 0 1 0 2.45-2H21v-2.25a2.25 2.25 0 0 0-2.25-2.25H15V6.75A1.75 1.75 0 0 0 13.25 5h-2.5A1.75 1.75 0 0 0 9 6.75V9H5.25A2.25 2.25 0 0 0 3 11.25V13.5Zm6-4.5V6.75c0-.138.112-.25.25-.25h2.5c.138 0 .25.112.25.25V9H9Z"/>
+            </svg>
+          </span>
+          <div>
+            <div class="text-lg font-extrabold tracking-tight text-waseela-primary">وسيلة</div>
+            <div class="text-[11px] -mt-0.5 text-gray-500">تشغيل سيارات الحوض</div>
           </div>
         </div>
-        <div class="bg-white rounded-2xl shadow-soft p-4">
-          <div id="map" class="w-full"></div>
-          <div class="mt-3 text-xs text-gray-500">انقر على الخريطة لاختيار نقطة على سبيل المثال.</div>
-        </div>
+
+        <button id="ctaTop" class="px-3 py-2 rounded-lg text-white grad-primary text-sm shadow-soft">طلب حوض</button>
       </div>
-    </section>
+    </header>
 
-    <!-- Booking -->
-    <section id="booking" class="container mx-auto px-4 py-10">
-      <div class="grid lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-white rounded-2xl shadow-soft p-6">
-          <h2 class="text-xl font-bold mb-1">حجز حوض</h2>
-          <p class="text-gray-500 mb-4">املأ البيانات التالية لطلبك.</p>
+    <!-- محتوى رئيسي (خريطة + كروت) -->
+    <main class="px-4 pt-3 pb-4 max-w-screen-md mx-auto">
+      <!-- كارد مختصر -->
+      <section class="bg-white rounded-2xl shadow-soft p-4 mb-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-sm text-gray-500">موقعك التقريبي</div>
+            <div class="font-bold">الرياض</div>
+          </div>
+          <button id="locateBtn" class="text-blue-600 text-sm underline">تحديد الموقع</button>
+        </div>
+      </section>
 
-          <div class="grid md:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700">موقع التحميل</label>
-              <input id="pickup" type="text" placeholder="مثال: مستودع شمال الرياض"
+      <!-- خريطة -->
+      <section class="bg-white rounded-2xl shadow-soft p-2">
+        <div id="map" class="w-full"></div>
+        <div class="px-2 py-2 text-[12px] text-gray-500">انقر على الخريطة لاختيار نقطة. السحب للتكبير/التصغير.</div>
+      </section>
+
+      <!-- بطاقات مميزات (شكل تطبيق) -->
+      <section class="mt-3 grid grid-cols-3 gap-3">
+        <div class="bg-white rounded-xl p-3 text-center shadow">
+          <div class="w-8 h-8 rounded-lg grad-primary text-white mx-auto flex items-center justify-center">
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M6 2a1 1 0 0 0-1 1v2H3.5A1.5 1.5 0 0 0 2 6.5v11A1.5 1.5 0 0 0 3.5 19H5v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2h1.5a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 19.5 5H19V3a1 1 0 0 0-1-1H6Zm0 4h12v12H6V6Z"/></svg>
+          </div>
+          <div class="mt-2 text-[12px] font-semibold">حجز سريع</div>
+        </div>
+        <div class="bg-white rounded-xl p-3 text-center shadow">
+          <div class="w-8 h-8 rounded-lg grad-primary text-white mx-auto flex items-center justify-center">
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M12 1a11 11 0 1 0 11 11A11.013 11.013 0 0 0 12 1Zm1 11.414V6a1 1 0 0 0-2 0v7a1 1 0 0 0 .293.707l4 4a1 1 0 1 0 1.414-1.414Z"/></svg>
+          </div>
+          <div class="mt-2 text-[12px] font-semibold">استجابة فورية</div>
+        </div>
+        <div class="bg-white rounded-xl p-3 text-center shadow">
+          <div class="w-8 h-8 rounded-lg grad-primary text-white mx-auto flex items-center justify-center">
+            <svg viewBox="0 0 24 24" class="w-5 h-5" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 5.5a1 1 0 1 0-2 0V12a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586Z"/></svg>
+          </div>
+          <div class="mt-2 text-[12px] font-semibold">تتبع مباشر</div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Bottom Sheet (فورم الحجز) -->
+    <div class="sheet px-3 safe-bottom" id="sheet">
+      <div class="sheet-card bg-white shadow-2xl border border-gray-100 max-w-screen-md mx-auto">
+        <div class="drag-handle"></div>
+        <div class="p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-base font-extrabold">طلب حوض</h2>
+            <button id="closeSheet" class="text-gray-500 text-sm">إخفاء</button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div class="col-span-2">
+              <label class="block text-gray-700">التحميل</label>
+              <input id="pickup" type="text" placeholder="مثال: مستودع شمال"
                      class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700">موقع التفريغ</label>
+            <div class="col-span-2">
+              <label class="block text-gray-700">التفريغ</label>
               <input id="drop" type="text" placeholder="مثال: صناعية السلي"
                      class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">وزن الحمولة (كجم)</label>
-              <input id="weight" type="number" placeholder="مثال: 800"
+              <label class="block text-gray-700">الوزن (كجم)</label>
+              <input id="weight" type="number" placeholder="800"
                      class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">موعد التنفيذ</label>
+              <label class="block text-gray-700">التاريخ</label>
               <input id="date" type="datetime-local"
                      class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"/>
             </div>
-            <div class="md:col-span-2">
-              <label class="block text-sm font-medium text-gray-700">ملاحظات</label>
-              <textarea id="notes" rows="3" placeholder="تفاصيل إضافية (نوع البضاعة، متطلبات التحميل...)"
+            <div class="col-span-2">
+              <label class="block text-gray-700">ملاحظات</label>
+              <textarea id="notes" rows="2" placeholder="تفاصيل إضافية…"
                         class="mt-1 w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-waseela-primary/40"></textarea>
             </div>
           </div>
 
           <button id="bookBtn"
-                  class="mt-5 w-full md:w-auto px-8 py-3 rounded-xl text-white grad-primary shadow-soft hover:opacity-90 transition">
+                  class="mt-3 w-full px-6 py-3 rounded-xl text-white grad-primary shadow-soft">
             تأكيد الحجز
           </button>
 
-          <div id="result" class="hidden mt-4 p-4 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200"></div>
+          <div id="result" class="hidden mt-3 p-3 rounded-xl bg-emerald-50 text-emerald-900 border border-emerald-200 text-sm"></div>
         </div>
-
-        <aside class="bg-white rounded-2xl shadow-soft p-6">
-          <h3 class="font-bold">السعر التقديري</h3>
-          <p class="text-gray-600 text-sm mt-1">15 ر.س أساسي + 1.2 ر.س/كم + 0.05 ر.س/كجم</p>
-          <div class="mt-4 h-px bg-gray-100"></div>
-          <ul class="mt-4 space-y-3 text-sm text-gray-700">
-            <li class="flex items-start gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-waseela-secondary"></span> سائقون معتمدون وفحص دوري</li>
-            <li class="flex items-start gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-waseela-secondary"></span> تتبع مباشر للرحلة</li>
-            <li class="flex items-start gap-2"><span class="mt-1 w-2 h-2 rounded-full bg-waseela-secondary"></span> دعم فني على مدار الساعة</li>
-          </ul>
-        </aside>
-      </div>
-    </section>
-
-    <!-- Features -->
-    <section id="features" class="container mx-auto px-4 pb-14">
-      <h2 class="text-center text-2xl font-extrabold mb-8">مميزات وسيلة</h2>
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="bg-white p-6 rounded-2xl shadow-soft">
-          <div class="w-10 h-10 rounded-xl grad-primary text-white flex items-center justify-center">
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M6 2a1 1 0 0 0-1 1v2H3.5A1.5 1.5 0 0 0 2 6.5v11A1.5 1.5 0 0 0 3.5 19H5v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2h1.5a1.5 1.5 0 0 0 1.5-1.5v-11A1.5 1.5 0 0 0 19.5 5H19V3a1 1 0 0 0-1-1H6Zm0 4h12v12H6V6Z"/></svg>
-          </div>
-          <h3 class="mt-4 font-bold">حجز وجدولة</h3>
-          <p class="text-gray-600 text-sm mt-1">اطلب الآن أو حدّد وقت لاحق بكل سهولة.</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-soft">
-          <div class="w-10 h-10 rounded-xl grad-primary text-white flex items-center justify-center">
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 1a11 11 0 1 0 11 11A11.013 11.013 0 0 0 12 1Zm1 11.414V6a1 1 0 0 0-2 0v7a1 1 0 0 0 .293.707l4 4a1 1 0 1 0 1.414-1.414Z"/></svg>
-          </div>
-          <h3 class="mt-4 font-bold">سرعة استجابة</h3>
-          <p class="text-gray-600 text-sm mt-1">أقرب سائق إليك يتلقى طلبك فورًا.</p>
-        </div>
-        <div class="bg-white p-6 rounded-2xl shadow-soft">
-          <div class="w-10 h-10 rounded-xl grad-primary text-white flex items-center justify-center">
-            <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 2a10 10 0 1 0 10 10A10.011 10.011 0 0 0 12 2Zm1 5.5a1 1 0 1 0-2 0V12a1 1 0 0 0 .293.707l3 3a1 1 0 0 0 1.414-1.414L13 11.586Z"/></svg>
-          </div>
-          <h3 class="mt-4 font-bold">تتبع مباشر</h3>
-          <p class="text-gray-600 text-sm mt-1">تابع مسار مركبتك لحظة بلحظة.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- About -->
-    <section id="about" class="bg-white">
-      <div class="container mx-auto px-4 py-12 grid md:grid-cols-2 gap-8 items-center">
-        <div>
-          <h2 class="text-2xl font-extrabold">منصة وسيلة</h2>
-          <p class="text-gray-600 mt-3">
-            مبادرة متخصصة لتشغيل سيارات الحوض بواجهة سهلة وتكاملات دفع وتتبع،
-            بهدف رفع كفاءة النقل الخفيف وتقديم تجربة موثوقة للأفراد والمنشآت.
-          </p>
-        </div>
-        <div class="bg-gradient-to-tr from-waseela-primary/10 to-waseela-secondary/10 rounded-2xl p-6">
-          <ul class="space-y-3 text-gray-700">
-            <li>• علامة تجارية واضحة وهوية موحدة</li>
-            <li>• قابلية للنشر على GitHub Pages بملف واحد</li>
-            <li>• جاهزية للتوسّع لباك-إند وتطبيق جوال لاحقًا</li>
-          </ul>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <!-- Footer -->
-  <footer class="bg-white border-t">
-    <div class="container mx-auto px-4 py-6 text-sm text-gray-500 flex flex-col md:flex-row items-center justify-between gap-3">
-      <div>© 2025 وسيلة — جميع الحقوق محفوظة</div>
-      <div class="flex items-center gap-2">
-        <span class="text-gray-400">هوية وسيلة</span>
-        <span class="inline-flex w-3 h-3 rounded-full bg-[#1B6AA5]"></span>
-        <span class="inline-flex w-3 h-3 rounded-full bg-[#10B981]"></span>
-        <span class="inline-flex w-3 h-3 rounded-full bg-[#0ea5e9]"></span>
       </div>
     </div>
-  </footer>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="tabbar fixed bottom-0 inset-x-0 bg-white border-t shadow-sm z-40 safe-bottom">
+      <div class="max-w-screen-md mx-auto grid grid-cols-4">
+        <button class="py-2 flex flex-col items-center gap-0.5 text-blue-600" id="tabHome">
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 3l9 8h-3v9H6v-9H3l9-8z"/></svg>
+          <span class="text-[11px]">الرئيسية</span>
+        </button>
+        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabOrders">
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M7 4h10a2 2 0 0 1 2 2v14l-7-3-7 3V6a2 2 0 0 1 2-2z"/></svg>
+          <span class="text-[11px]">طلباتي</span>
+        </button>
+        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabWallet">
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M2 7a3 3 0 0 1 3-3h13a2 2 0 0 1 2 2v2h-2V6H5a1 1 0 0 0-1 1v1h15a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7z"/></svg>
+          <span class="text-[11px]">المحفظة</span>
+        </button>
+        <button class="py-2 flex flex-col items-center gap-0.5 text-gray-600" id="tabProfile">
+          <svg viewBox="0 0 24 24" class="w-6 h-6" fill="currentColor"><path d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-5.33 0-8 2.667-8 6v2h16v-2c0-3.333-2.67-6-8-6z"/></svg>
+          <span class="text-[11px]">حسابي</span>
+        </button>
+      </div>
+    </nav>
+
+  </div>
 
   <!-- Scripts -->
   <script>
     // خريطة
-    const map = L.map('map').setView([24.7136, 46.6753], 10)
+    const map = L.map('map', { zoomControl:false }).setView([24.7136,46.6753], 11)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution: '© OpenStreetMap'
     }).addTo(map)
@@ -231,21 +196,51 @@
       marker = L.marker(e.latlng).addTo(map)
     })
 
-    // الحجز (وهمي)
-    const btn = document.getElementById('bookBtn')
+    // Bottom Sheet منطق بسيط
+    const sheet = document.getElementById('sheet')
+    const openSheet = () => { sheet.style.display='block' }
+    const closeSheet = () => { sheet.style.display='none' }
+    document.getElementById('ctaTop').addEventListener('click', openSheet)
+    document.getElementById('closeSheet').addEventListener('click', closeSheet)
+
+    // زر تحديد الموقع (تجريبي)
+    document.getElementById('locateBtn').addEventListener('click', ()=>{
+      if(navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(pos=>{
+          const {latitude,longitude} = pos.coords
+          map.setView([latitude,longitude], 13)
+          if (marker) marker.remove()
+          marker = L.marker([latitude,longitude]).addTo(map)
+        })
+      } else {
+        alert('المتصفح لا يدعم تحديد الموقع')
+      }
+    })
+
+    // حجز وهمي
+    const bookBtn = document.getElementById('bookBtn')
     const result = document.getElementById('result')
-    btn.addEventListener('click', () => {
+    bookBtn.addEventListener('click', () => {
       const pickup = document.getElementById('pickup').value.trim()
       const drop = document.getElementById('drop').value.trim()
       const weight = document.getElementById('weight').value
-      if(!pickup || !drop){
-        alert('يرجى إدخال مواقع التحميل والتفريغ'); return
-      }
+      if(!pickup || !drop){ alert('يرجى إدخال مواقع التحميل والتفريغ'); return }
       const id = 'R-' + Math.floor(Math.random()*9000+1000)
-      result.textContent = `تم إنشاء الحجز بنجاح! رقم الحجز: ${id} — وزن: ${weight||0} كجم`
+      result.textContent = `تم إنشاء الحجز: ${id} — وزن: ${weight||0} كجم`
       result.classList.remove('hidden')
-      result.scrollIntoView({behavior:'smooth', block:'center'})
     })
+
+    // تبويب سفلي (عرض توست بسيط)
+    const tabs = ['tabHome','tabOrders','tabWallet','tabProfile']
+    tabs.forEach(id=>{
+      document.getElementById(id).addEventListener('click', ()=>{
+        if(id==='tabHome'){ window.scrollTo({top:0,behavior:'smooth'}) }
+        else alert('هذه الواجهة تجريبية — سيتم تفعيلها لاحقًا.')
+      })
+    })
+
+    // فتح فورم عند دخول الصفحة على الجوال ليسهل الاستخدام
+    if (window.matchMedia('(max-width: 640px)').matches) openSheet()
   </script>
 </body>
 </html>
