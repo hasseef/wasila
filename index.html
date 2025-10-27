@@ -6,53 +6,61 @@
   <title>وسيلة — نموذج أولي لحسابات التطبيق</title>
   <style>
     :root{
-      /* ألوان وسيلة المعتمدة */
-      --bg:#0e0f12; --card:#14161a; --muted:#9aa3af; --text:#e7eaf0; --brand:#36cfc9; --brand-2:#7c7cf5; --danger:#ef4444;
-      --ok:#22c55e; --warn:#f59e0b; --b:#1f2937; --ring:#3b82f6;
+      /* لوحة فاتحة مستوحاة من شعار الونيت (تركواز + أبيض) */
+      --bg:#f6fbfc;          /* خلفية عامة فاتحة */
+      --card:#ffffff;        /* بطاقات بيضاء */
+      --muted:#667085;       /* نص ثانوي */
+      --text:#0f172a;        /* نص أساسي داكن (slate-900) */
+      --brand:#23c7c2;       /* تركواز أساسي */
+      --brand-2:#7ce7e2;     /* تركواز فاتح للتدرج */
+      --danger:#ef4444;
+      --ok:#16a34a;          /* أخضر نجاح هادئ */
+      --warn:#f59e0b;
+      --b:#e5e7eb;           /* حدود فاتحة */
+      --ring:#22d3ee;        /* ظل تركوازي */
+      --shadow: 0 6px 24px rgba(14,165,233,.12), 0 2px 8px rgba(2,132,199,.08);
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,#0c0d10,#0b1218 60%,#0c0f16);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif;}
+    body{margin:0;background:linear-gradient(180deg,var(--bg), #ffffff 65%, #f5ffff);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif;}
     a{color:inherit}
     .container{max-width:1200px;margin:auto;padding:16px}
-    header{position:sticky;top:0;background:rgba(12,14,18,.7);backdrop-filter:blur(8px);z-index:50;border-bottom:1px solid #1f2937}
-    .brand{display:flex;gap:10px;align-items:center}
-    .logo{width:36px;height:36px;border-radius:10px;background:conic-gradient(from 20deg,var(--brand),var(--brand-2));box-shadow:0 0 0 2px #0b0e14 inset}
-    .logoImg{width:36px;height:36px;border-radius:10px;object-fit:cover;display:none;box-shadow:0 0 0 2px #0b0e14 inset}
-    .logoImg.hidden{display:none}
-    .title{font-weight:700;letter-spacing:.2px}
+    header{position:sticky;top:0;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);z-index:50;border-bottom:1px solid var(--b)}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logoBox{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));box-shadow:var(--shadow)}
+    .title{font-weight:800;letter-spacing:.1px}
 
-    .card{background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,.01));border:1px solid #1f2937;border-radius:16px;padding:18px}
+    .card{background:var(--card);border:1px solid var(--b);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
     .card h3{margin:0 0 10px 0}
 
     .accounts{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-    .btn{width:100%;padding:14px;border-radius:12px;border:1px solid #2b3240;background:#12161e;cursor:pointer;color:var(--text);font-weight:600}
-    .btn:hover{border-color:var(--brand-2)}
+    .btn{width:100%;padding:14px;border-radius:12px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;color:var(--text);font-weight:700;box-shadow:0 1px 0 rgba(2,6,23,.04)}
+    .btn:hover{border-color:var(--brand)}
+    .primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none;color:#063a3a}
+    .ghost{background:transparent;border:1px dashed #cbd5e1}
 
     .workbench{display:grid;grid-template-columns:1fr 420px;gap:16px}
-    .mapWrap{position:relative;min-height:420px;border-radius:16px;overflow:hidden;border:1px solid #1f2937;background:#0b1118}
-    .mapFake{position:absolute;inset:0;z-index:1;background-image:radial-gradient(#1a2634 1px, transparent 1px);background-size:18px 18px;display:flex;align-items:center;justify-content:center;color:#9fb3c8;font-weight:700;letter-spacing:1px}
+    .mapWrap{position:relative;min-height:420px;border-radius:16px;overflow:hidden;border:1px solid var(--b);background:#f0fbfc}
+    .mapFake{position:absolute;inset:0;z-index:1;background-image:radial-gradient(#d0f1f3 1px, transparent 1px);background-size:18px 18px;display:flex;align-items:center;justify-content:center;color:#0e7490;font-weight:800;letter-spacing:.5px}
     .panel{position:relative;z-index:2}
 
     .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .field{display:grid;gap:6px;margin-bottom:10px}
     label{font-size:12px;color:var(--muted)}
-    input,select,textarea{width:100%;padding:10px 12px;border-radius:10px;background:#0f1420;border:1px solid #243044;color:var(--text)}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:var(--ring);box-shadow:0 0 0 4px rgba(124,124,245,.15)}
+    input,select,textarea{width:100%;padding:10px 12px;border-radius:12px;background:#ffffff;border:1px solid #dbe4ea;color:var(--text)}
+    input:focus,select:focus,textarea:focus{outline:none;border-color:#99f6e4;box-shadow:0 0 0 6px rgba(34,211,238,.18)}
     .muted{color:var(--muted);font-size:13px}
     .actions{display:flex;gap:10px;flex-wrap:wrap}
-    .primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none}
-    .ghost{background:transparent;border:1px dashed #374151}
 
     .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
-    .tab{padding:8px 12px;border-radius:999px;border:1px solid #2b3240;background:#12161e;cursor:pointer}
-    .tab.active{border-color:var(--brand-2);box-shadow:0 0 0 4px rgba(124,124,245,.15)}
+    .tab{padding:8px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;font-weight:700}
+    .tab.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
 
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    .stat{padding:14px;border-radius:12px;border:1px solid #273043;background:#0f1420}
+    .stat{padding:14px;border-radius:12px;border:1px solid var(--b);background:#ffffff;box-shadow:var(--shadow)}
     .stat b{font-size:22px}
 
-    footer{margin:24px 0 12px;color:#8a93a3;font-size:12px}
+    footer{margin:24px 0 12px;color:#6b7280;font-size:12px}
 
     @media (max-width: 1100px){.workbench{grid-template-columns:1fr}}
     @media (max-width: 860px){.accounts{grid-template-columns:repeat(2,1fr)}}
@@ -60,15 +68,35 @@
 
     .mapCollapsed .mapWrap{display:none}
 
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #2b3240}
+    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #d1e4ea;background:#f8ffff}
   </style>
 </head>
 <body>
   <header>
     <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px">
       <div class="brand">
-        <img id="appLogo" class="logoImg" alt="وسيلة" />
-        <div class="logo" aria-hidden="true" title="Fallback"></div>
+        <div class="logoBox" aria-hidden="true" title="وسيلة">
+          <!-- شعار الونيت (SVG مضمّن) -->
+          <svg width="28" height="28" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#23c7c2"/>
+                <stop offset="1" stop-color="#7ce7e2"/>
+              </linearGradient>
+            </defs>
+            <!-- جسم الونيت -->
+            <path d="M6 38h44c3 0 5-2 5-5v-3c0-1-.4-2-1.1-2.7l-7.5-7.5A4 4 0 0 0 43 18H33a3 3 0 0 0-3 3v3H14a6 6 0 0 0-6 6v8z" fill="url(#g)"/>
+            <!-- صندوق التحميل -->
+            <rect x="34" y="19" width="9" height="7" rx="2" fill="#e6fffb"/>
+            <!-- الأرضية -->
+            <rect x="4" y="40" width="56" height="4" rx="2" fill="#d1faf5"/>
+            <!-- العجلات -->
+            <circle cx="18" cy="44" r="6" fill="#0ea5a4"/>
+            <circle cx="18" cy="44" r="3" fill="#e6fffb"/>
+            <circle cx="46" cy="44" r="6" fill="#0ea5a4"/>
+            <circle cx="46" cy="44" r="3" fill="#e6fffb"/>
+          </svg>
+        </div>
         <div>
           <div class="title">وسيلة — نموذج أولي لحسابات التطبيق</div>
           <div class="muted" id="envNote">نسخة عرض أولية — بدون أي بيانات حقيقية</div>
@@ -381,10 +409,7 @@
       }
       window.addEventListener('hashchange', route);
 
-      // logo autodetect
-      autoDetectLogo();
-
-      // boot: Always return to landing on load (ignores any pre-existing hash)
+      // boot: always land on landing without showing hash
       history.replaceState(null, '', location.pathname);
       openView('landing');
       updateUI();
@@ -462,7 +487,7 @@
       if(list){
         if(!S.orders.length){list.textContent = 'لا توجد طلبات بعد.'}
         else{
-          list.innerHTML = S.orders.map(o=>`<div class=\"card\" style=\"margin:8px 0\"><b>من:</b> ${esc(o.pickup)} — <b>إلى:</b> ${esc(o.dropoff)}<br><span class=\"muted\">${new Date(o.id).toLocaleString('ar-SA')}</span><br><b>التقدير:</b> ${o.price} ريال <span class=\"badge\" style=\"border-color:#2b3240\">${mapStatus(o.status)}</span></div>`).join('');
+          list.innerHTML = S.orders.map(o=>`<div class=\"card\" style=\"margin:8px 0\"><b>من:</b> ${esc(o.pickup)} — <b>إلى:</b> ${esc(o.dropoff)}<br><span class=\"muted\">${new Date(o.id).toLocaleString('ar-SA')}</span><br><b>التقدير:</b> ${o.price} ريال <span class=\"badge\" style=\"border-color:#bfecef\">${mapStatus(o.status)}</span></div>`).join('');
         }
       }
       // Admin stats
@@ -496,7 +521,7 @@
       if(near){
         const avail = S.orders.filter(o=>o.status==='new').slice(0,5);
         if(!avail.length) near.innerHTML = '<li class="muted">لا توجد طلبات قريبة الآن.</li>'; else{
-          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b><br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
+          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b><br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn primary\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
         }
       }
       // Owners table
@@ -514,7 +539,7 @@
     function mapStatus(s){ return s==='new'?'جديد': s==='assigned'?'مُسند': s==='in_progress'?'قيد التنفيذ': s==='completed'?'مكتمل': s==='cancelled'?'ملغي':'غير معروف'; }
     function persist(){ localStorage.setItem('orders', JSON.stringify(S.orders)); localStorage.setItem('owners', JSON.stringify(S.owners)); localStorage.setItem('drivers', JSON.stringify(S.drivers)); localStorage.setItem('pricing', JSON.stringify(S.pricing)); }
 
-    // ---- Minimal front-end test cases ----
+    // ---- Minimal front-end test cases (unchanged) ----
     function runTests(){
       const results = [];
       const assert = (name, cond) => results.push({اختبار:name, النتيجة: cond? 'PASS':'FAIL'});
@@ -542,27 +567,6 @@
       if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
       console.table(results);
       window.openView('landing');
-    }
-
-    // --- Auto-detect logo from hasseef.github.io/wasila common paths ---
-    function autoDetectLogo(){
-      const candidates = [
-        'https://hasseef.github.io/wasila/logo.svg',
-        'https://hasseef.github.io/wasila/assets/logo.svg',
-        'https://hasseef.github.io/wasila/logo.png',
-        'https://hasseef.github.io/wasila/assets/logo.png',
-        'https://hasseef.github.io/wasila/img/logo.svg',
-        'https://hasseef.github.io/wasila/img/logo.png'
-      ];
-      const imgEl = document.getElementById('appLogo');
-      (function tryNext(i){
-        if(i>=candidates.length){ imgEl.classList.add('hidden'); return; }
-        const url = candidates[i];
-        const probe = new Image();
-        probe.onload = ()=>{ imgEl.src = url; imgEl.classList.remove('hidden'); };
-        probe.onerror = ()=> tryNext(i+1);
-        probe.src = url;
-      })(0);
     }
   </script>
 </body>
