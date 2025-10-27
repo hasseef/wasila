@@ -79,7 +79,18 @@
     .appTabs button{flex:1;border:0;background:transparent;font-weight:800;color:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
     .appTabs button .ico{width:22px;height:22px}
     .appTabs button.active{color:#0b6b6b}
+      /* Leaflet map sizing + glass look */
+    .mapWrap{position:relative;min-height:380px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--b);background:#eefbfd;box-shadow:var(--shadow)}
+    .leaflet-map{position:absolute;inset:0}
+    .glass{background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border:1px solid var(--b);box-shadow:var(--shadow);border-radius:12px}
+    .field .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .pill{padding:8px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700}
+    .pill.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
   </style>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 </head>
 <body>
   <header>
@@ -145,17 +156,26 @@
 
       <div class="workbench" id="shipperBench">
         <div class="mapWrap">
-          <div class="mapFake">خريطة تجريبية (مكان الخريطة الفعلية مستقبلاً)</div>
+          <div id="leafletMap" class="leaflet-map" role="region" aria-label="خريطة وسيلة"></div>
+        </div>
         </div>
         <div class="panel card">
           <h3>طلب توصيل <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
           <div class="field">
             <label>نقطة الاستلام</label>
-            <input id="pickup" placeholder="المدينة، الحي، الشارع" />
+            <div class="inline-actions">
+              <input id="pickup" placeholder="المدينة، الحي، الشارع" style="flex:1" />
+              <button type="button" class="pill" id="pickPickup">تحديد من الخريطة</button>
+              <span class="muted" id="pickupHint"></span>
+            </div>
           </div>
           <div class="field">
             <label>نقطة التسليم</label>
-            <input id="dropoff" placeholder="المدينة، الحي، الشارع" />
+            <div class="inline-actions">
+              <input id="dropoff" placeholder="المدينة، الحي، الشارع" style="flex:1" />
+              <button type="button" class="pill" id="pickDropoff">تحديد من الخريطة</button>
+              <span class="muted" id="dropoffHint"></span>
+            </div>
           </div>
           <div class="row">
             <div class="field">
@@ -411,6 +431,12 @@
         {key:'appliance',  name:'أجهزة كهربائية', enabled:true},
         {key:'office',     name:'نقل مكتبي', enabled:true},
         {key:'flatbed',    name:'سطحة/معدات', enabled:true},
+        {key:'building',   name:'مواد بناء وحفر', enabled:true},
+        {key:'landscape',  name:'تنسيق حدائق ونخيل', enabled:true},
+        {key:'event',      name:'تجهيز فعاليات ومعارض', enabled:true},
+        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', enabled:true},
+        {key:'store',      name:'توصيل من متجر/مستودع', enabled:true},
+        {key:'warehouse',  name:'مناولة بين المستودعات', enabled:true},
         {key:'long',       name:'نقل بين المدن', enabled:true},
         {key:'express',    name:'سريع داخل المدينة', enabled:true}
       ]))
@@ -453,14 +479,34 @@
       // boot: always land on landing without showing hash
       history.replaceState(null, '', location.pathname);
       openView('landing');
+      initLeaflet();
       updateUI();
+
+      // bind map picking buttons
+      const pp = document.getElementById('pickPickup');
+      const pd = document.getElementById('pickDropoff');
+      if(pp) pp.addEventListener('click', ()=>enterMapPickMode('pickup'));
+      if(pd) pd.addEventListener('click', ()=>enterMapPickMode('dropoff'));
 
       // tests
       const testBtn = document.getElementById('runTestsBtn');
       if(testBtn){ testBtn.addEventListener('click', runTests); }
     });
 
-    function kmBetween(){ return 2 + Math.round(Math.random()*12); }
+    function kmBetween(){
+      // if both points selected on map, compute haversine; else fallback to ~random
+      if(window.mapState?.pickup && window.mapState?.dropoff){
+        const {pickup, dropoff} = window.mapState;
+        const R = 6371; // km
+        const toRad = d => d*Math.PI/180;
+        const dLat = toRad(dropoff.lat - pickup.lat);
+        const dLon = toRad(dropoff.lng - pickup.lng);
+        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(pickup.lat))*Math.cos(toRad(dropoff.lat))*Math.sin(dLon/2)**2;
+        const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return Math.max(1, Math.round(R*c));
+      }
+      return 2 + Math.round(Math.random()*12);
+    }
 
     function estimate(){
       const km = kmBetween();
@@ -646,6 +692,55 @@
       if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
       console.table(results);
       window.openView('landing');
+    }
+      // ===== Leaflet integration =====
+    let map, pickupMarker, dropoffMarker, routeLine; 
+    window.mapState = {pickup:null, dropoff:null};
+
+    function initLeaflet(){
+      if(typeof L === 'undefined'){ console.warn('Leaflet not loaded'); return; }
+      if(map){ return; }
+      map = L.map('leafletMap', { zoomControl: true, attributionControl: true }).setView([24.7136,46.6753], 11); // Riyadh default
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+
+      // custom divIcon as truck badge
+      const truckSVG = `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 128 64'><defs><linearGradient id='t' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#23c7c2'/><stop offset='1' stop-color='#7ce7e2'/></linearGradient></defs><rect x='0' y='40' width='128' height='8' rx='4' fill='#cffafe'/><path d='M6 40h82c3 0 5-2 5-5v-7c0-1.2-.9-2.8-1.9-3.7l-10.5-9.6A6 6 0 0 0 76 12H58a4 4 0 0 0-4 4v6H24a10 10 0 0 0-10 10v8z' fill='url(#t)'/><circle cx='32' cy='47' r='8' fill='#0ea5a4'/><circle cx='32' cy='47' r='3.8' fill='#ecfeff'/><circle cx='96' cy='47' r='8' fill='#0ea5a4'/><circle cx='96' cy='47' r='3.8' fill='#ecfeff'/></svg>`;
+      const truckIcon = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
+      const dropIcon  = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px;transform:scale(.95)">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
+
+      map.on('click', (e)=>{
+        if(!window.mapPickMode) return;
+        const {lat,lng} = e.latlng;
+        if(window.mapPickMode==='pickup'){
+          window.mapState.pickup = {lat,lng};
+          if(pickupMarker) pickupMarker.setLatLng([lat,lng]); else pickupMarker = L.marker([lat,lng], {icon:truckIcon}).addTo(map);
+          document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+        }else if(window.mapPickMode==='dropoff'){
+          window.mapState.dropoff = {lat,lng};
+          if(dropoffMarker) dropoffMarker.setLatLng([lat,lng]); else dropoffMarker = L.marker([lat,lng], {icon:dropIcon}).addTo(map);
+          document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+        }
+        exitMapPickMode();
+        drawRouteIfReady();
+      });
+    }
+
+    function enterMapPickMode(which){
+      window.mapPickMode = which; // 'pickup' | 'dropoff'
+      document.getElementById(which==='pickup'?'pickPickup':'pickDropoff').classList.add('active');
+    }
+    function exitMapPickMode(){
+      const btns=['pickPickup','pickDropoff']; btns.forEach(id=>{ const b=document.getElementById(id); if(b) b.classList.remove('active'); });
+      window.mapPickMode = null;
+    }
+
+    function drawRouteIfReady(){
+      const a = window.mapState.pickup, b = window.mapState.dropoff; if(!a||!b||!map) return;
+      const latlngs = [ [a.lat,a.lng], [b.lat,b.lng] ];
+      if(routeLine){ routeLine.setLatLngs(latlngs); } else { routeLine = L.polyline(latlngs, {weight:5, opacity:.8}).addTo(map); }
+      map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
+      // update estimate hint immediately
+      document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${kmBetween()} كم`;
     }
   </script>
 </body>
