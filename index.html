@@ -1,4 +1,18 @@
-<!doctype html>
+pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'),
+      services: JSON.parse(localStorage.getItem('services')||JSON.stringify([
+        {key:'house_move', name:'نقل أثاث منزلي', cat:'منزلي', enabled:true},
+        {key:'appliance',  name:'أجهزة كهربائية', cat:'منزلي', enabled:true},
+        {key:'office',     name:'نقل مكتبي', cat:'تجاري', enabled:true},
+        {key:'flatbed',    name:'سطحة/معدات', cat:'معدات', enabled:true},
+        {key:'building',   name:'مواد بناء وحفر', cat:'معدات', enabled:true},
+        {key:'landscape',  name:'تنسيق حدائق ونخيل', cat:'منزلي', enabled:true},
+        {key:'event',      name:'تجهيز فعاليات ومعارض', cat:'تجاري', enabled:true},
+        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', cat:'معدات', enabled:true},
+        {key:'store',      name:'توصيل من متجر/مستودع', cat:'تجاري', enabled:true},
+        {key:'warehouse',  name:'مناولة بين المستودعات', cat:'لوجستي', enabled:true},
+        {key:'long',       name:'نقل بين المدن', cat:'لوجستي', enabled:true},
+        {key:'express',    name:'سريع داخل المدينة', cat:'سريع', enabled:true}
+      ]))<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
@@ -103,6 +117,25 @@
     .switch input:checked::after{right:21px}
     .badge.on{border-color:#a7f3d0}
     .badge.off{border-color:#fecaca}
+  /* تحسين عرض خدمات الإدارة للجوال */
+    .service-grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:480px){.service-grid{grid-template-columns:1fr 1fr}}
+    @media(min-width:860px){.service-grid{grid-template-columns:1fr 1fr 1fr}}
+    .service-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--b);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
+    .service-card .ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));color:#063a3a;font-weight:900}
+    .service-card .meta{flex:1;min-width:0}
+    .service-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .service-card .meta .muted{font-size:12px}
+    /* Switch (لمس كبير) */
+    .switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
+    .switch input{appearance:none;width:44px;height:26px;border-radius:999px;border:1px solid #cbd5e1;background:#e5f9fb;outline:none;position:relative;transition:.2s}
+    .switch input::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:.2s}
+    .switch input:checked{background:linear-gradient(180deg,var(--brand),var(--brand-2));border-color:transparent}
+    .switch input:checked::after{right:21px}
+    .badge.on{border-color:#a7f3d0}
+    .badge.off{border-color:#fecaca}
+    .svc-group{display:grid;gap:8px}
+    .svc-group h5{margin:8px 0 0;font-size:14px;color:#0b6b6b}
   </style>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -395,7 +428,19 @@
 
       <div class="card" style="margin-top:12px">
         <h4>الخدمات (تفعيل/تعطيل)</h4>
+        <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px">
+          <input id="svcSearch" placeholder="ابحث باسم الخدمة..." style="flex:1;min-width:200px;padding:12px;border-radius:12px;border:1px solid #dbe4ea"/>
+          <div class="chips" id="svcCats" style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="pill" data-cat="الكل">الكل</button>
+            <button class="pill" data-cat="منزلي">منزلي</button>
+            <button class="pill" data-cat="معدات">معدات</button>
+            <button class="pill" data-cat="تجاري">تجاري</button>
+            <button class="pill" data-cat="لوجستي">لوجستي</button>
+            <button class="pill" data-cat="سريع">سريع</button>
+          </div>
+        </div>
         <div id="adminServices" class="service-grid"></div>
+        <div class="muted" style="margin-top:6px">💡 يمكنك إعادة الترتيب بالسحب والإفلات. يتم الحفظ تلقائيًا.</div>
       </div>
 
       <div class="card" style="margin-top:12px">
@@ -487,6 +532,26 @@
             if(tgt){ tgt.closest('div').hidden=false; }
           }
         });
+      });
+
+      const tgl = document.getElementById('toggleMapBtn');
+      if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
+
+      // boot
+      history.replaceState(null, '', location.pathname);
+      openView('landing');
+      initLeaflet();
+      updateUI();
+
+      // services toolbar listeners
+      const q = document.getElementById('svcSearch');
+      if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
+      const chips = document.getElementById('svcCats');
+      if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
+
+      const testBtn = document.getElementById('runTestsBtn');
+      if(testBtn){ testBtn.addEventListener('click', runTests); }
+    });
       });
 
       // map toggle
@@ -608,23 +673,78 @@
 
       // Admin services toggles
       const adminSvc = byId('adminServices');
-      if(adminSvc){
-        adminSvc.innerHTML = S.services.map((s,i)=>{
-          const stateBadge = `<span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>`;
-          const letter = s.name.trim().charAt(0);
-          const id = `svc_${i}`;
-          return `<div class=\"service-card\">
-            <div class=\"ico\" aria-hidden=\"true\">${letter}</div>
-            <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>
-            <label class=\"switch\" for=\"${id}\">
-              <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${i}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />
-            </label>
-            ${stateBadge}
-          </div>`
-        }).join('');
-      }
+      if(adminSvc){ renderAdminServices(); }
     }
-      // Admin stats
+
+    // ===== Admin services rendering + filters + drag&drop =====
+    window.__svcQuery = '';
+    window.__svcCat = 'الكل';
+
+    // ensure categories exist for older storage
+    S.services = S.services.map(s=>({...s, cat: s.cat || mapCategory(s.key)}));
+
+    function mapCategory(key){
+      if(['house_move','appliance','landscape'].includes(key)) return 'منزلي';
+      if(['office','event','store'].includes(key)) return 'تجاري';
+      if(['flatbed','building','waste'].includes(key)) return 'معدات';
+      if(['warehouse','long'].includes(key)) return 'لوجستي';
+      if(['express'].includes(key)) return 'سريع';
+      return 'أخرى';
+    }
+
+    function filteredServices(){
+      const q = (window.__svcQuery||'').toLowerCase();
+      const cat = window.__svcCat||'الكل';
+      return S.services.filter(s=>{
+        const matchesQ = !q || s.name.toLowerCase().includes(q) || s.key.toLowerCase().includes(q);
+        const matchesC = cat==='الكل' || s.cat===cat;
+        return matchesQ && matchesC;
+      });
+    }
+
+    function renderAdminServices(){
+      const host = document.getElementById('adminServices'); if(!host) return;
+      const groups = {};
+      filteredServices().forEach((s,idx)=>{ const g=s.cat||'أخرى'; (groups[g]=groups[g]||[]).push({s, idx}); });
+      host.innerHTML = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ar')).map(g=>{
+        const items = groups[g].map(({s,idx})=>serviceCardHTML(s, idx)).join('');
+        return `<div class=\"svc-group\"><h5>${g}</h5>${items}</div>`;
+      }).join('');
+      bindServiceCardDnD(host);
+    }
+
+    function serviceCardHTML(s, idx){
+      const letter = s.name.trim().charAt(0);
+      const id = `svc_${idx}`;
+      return `<div class=\"service-card\" draggable=\"true\" data-index=\"${idx}\" aria-grabbed=\"false\">
+        <div class=\"ico\" aria-hidden=\"true\">${letter}</div>
+        <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>
+        <label class=\"switch\" for=\"${id}\">
+          <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${idx}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />
+        </label>
+        <span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>
+      </div>`
+    }
+
+    function bindServiceCardDnD(root){
+      const cards=[...root.querySelectorAll('.service-card')];
+      let dragIndex=null;
+      cards.forEach(card=>{
+        card.addEventListener('dragstart', (e)=>{ dragIndex=+card.dataset.index; card.style.opacity=.6; e.dataTransfer.effectAllowed='move'; });
+        card.addEventListener('dragend', ()=>{ card.style.opacity=''; });
+        card.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; });
+        card.addEventListener('drop', (e)=>{
+          e.preventDefault();
+          const toIndex = +card.dataset.index;
+          if(Number.isFinite(dragIndex) && Number.isFinite(toIndex) && dragIndex!==toIndex){
+            const [moved] = S.services.splice(dragIndex,1);
+            S.services.splice(toIndex,0,moved);
+            persist();
+            renderAdminServices();
+          }
+        });
+      });
+    }      // Admin stats
       byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
       byId('stOrders').textContent = S.orders.slice(0,10).length;
       byId('stDrivers').textContent = S.drivers.filter(d=>d.available).length;
@@ -686,14 +806,11 @@
         assert('تعريف openView', typeof window.openView === 'function');
         const ids = ['landing','shipper','owner','driver','admin','ownersList'];
         ids.forEach(id=>{ window.openView(id); const sec = document.getElementById(id); assert(`إظهار القسم ${id}`, sec && sec.hidden===false); });
-        // Hash routing (نتركه كما هو للاختبار لكنه لا يُستخدم بالإقلاع)
         location.hash = '#owner'; window.dispatchEvent(new HashChangeEvent('hashchange')); assert('المسار بالهاش يعمل', !document.getElementById('owner').hidden);
-        // تبويب الشاحن
         window.openView('shipper');
         const newTab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]');
         if(newTab){ newTab.click(); }
         assert('التبديل إلى تبويب "طلباتي"', document.getElementById('shipper-orders').hidden===false);
-        // سيناريو: إنشاء طلب وقبوله ثم إكماله
         const preCount = S.orders.length;
         S.orders.unshift({id: Date.now()+1, pickup:'اختبار أ', dropoff:'اختبار ب', size:'small', price:50, status:'new', driverId:null});
         persist();
@@ -701,6 +818,17 @@
         const newId = S.orders[0].id; driverAccept(newId); assert('قبول السائق للطلب', S.orders[0].status==='in_progress');
         S.orders[0].status='completed'; persist(); assert('إكمال الطلب', S.orders[0].status==='completed');
         updateUI();
+        // اختبارات إضافية للإدارة: الفلترة والترتيب
+        window.__svcQuery = 'نقل'; const before = filteredServices().length; assert('فلترة الخدمات بالكلمة تعمل', before>0);
+        window.__svcCat = 'معدات'; const onlyEquip = filteredServices().every(s=>s.cat==='معدات'); assert('تصفية حسب الفئة تعمل', onlyEquip);
+        // محاكاة نقل عنصر في المصفوفة
+        const len=S.services.length; const first=S.services[0]; S.services.splice(0,1); S.services.splice(2,0,first); persist(); assert('إعادة ترتيب الخدمات بالذاكرة', S.services.length===len && S.services[2]===first);
+      }catch(e){ console.error('Test error:', e); }
+      const host = document.getElementById('testResults');
+      if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('
+')+'</pre>'; }
+      console.table(results);
+      window.openView('landing');
       }catch(e){ console.error('Test error:', e); }
       const host = document.getElementById('testResults');
       if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
