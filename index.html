@@ -180,6 +180,7 @@
               <input id="pickup" placeholder="المدينة، الحي، الشارع" style="flex:1" />
               <button type="button" class="pill" id="pickPickup">تحديد من الخريطة</button>
               <button type="button" class="pill primary" id="useGPS" title="استخدم موقعي">استخدم موقعي</button>
+              <button type="button" class="pill" id="copyPickup" title="نسخ الإحداثيات">نسخ إحداثيات</button>
               <span class="muted" id="pickupHint"></span>
             </div>
           </div>
@@ -189,6 +190,8 @@
             <div class="inline-actions">
               <input id="dropoff" placeholder="المدينة، الحي، الشارع" style="flex:1" />
               <button type="button" class="pill" id="pickDropoff">تحديد من الخريطة</button>
+              <button type="button" class="pill primary" id="useGPSDrop" title="موقعي للتسليم">موقعي للتسليم</button>
+              <button type="button" class="pill" id="copyDropoff" title="نسخ الإحداثيات">نسخ إحداثيات</button>
               <span class="muted" id="dropoffHint"></span>
             </div>
           </div>
@@ -378,6 +381,27 @@
           <div class="field"><label>سعر الكيلو للوزن الإضافي (ريال/كجم)</label><input id="perKg" type="number" step="0.1" value="0.5"/></div>
           <div class="field"><label>وزن مجاني مشمول (كجم)</label><input id="freeKg" type="number" step="1" value="50"/></div>
         </div>
+        <div class="row">
+          <div class="field"><label>مضاعف الحجم (صغير/متوسط/كبير)</label>
+            <div class="inline-actions" style="gap:6px">
+              <input id="mSmall" type="number" step="0.05" value="1" style="width:33%"/>
+              <input id="mMedium" type="number" step="0.05" value="1.3" style="width:33%"/>
+              <input id="mBig" type="number" step="0.05" value="1.8" style="width:33%"/>
+            </div>
+          </div>
+          <div class="field"><label>مضاعف نوع الحمولة (صناديق/أثاث/أجهزة/مواد بناء/معدات)</label>
+            <div class="inline-actions" style="gap:6px;flex-wrap:wrap">
+              <input id="tBoxes" type="number" step="0.05" value="1" style="width:18%"/>
+              <input id="tFurniture" type="number" step="0.05" value="1.15" style="width:18%"/>
+              <input id="tAppliances" type="number" step="0.05" value="1.2" style="width:18%"/>
+              <input id="tBuilding" type="number" step="0.05" value="1.3" style="width:18%"/>
+              <input id="tEquipment" type="number" step="0.05" value="1.35" style="width:18%"/>
+            </div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="field"><label>فترة التتبّع الحي (ثوانٍ)</label><input id="pollSec" type="number" min="4" step="1" value="8"/></div>
+        </div>
         <div class="actions">
           <button class="btn primary" onclick="savePricing()">حفظ التسعير</button>
           <span class="muted" id="pricingSaved"></span>
@@ -447,7 +471,7 @@
       orders: JSON.parse(localStorage.getItem('orders')||'[]'),
       owners: JSON.parse(localStorage.getItem('owners')||'[]'),
       drivers: JSON.parse(localStorage.getItem('drivers')||'[]'),
-      pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20,"perKg":0.5,"freeKg":50}'),
+      pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20,"perKg":0.5,"freeKg":50,"pollSec":8,"multipliers":{"size":{"small":1,"medium":1.3,"big":1.8},"type":{"boxes":1,"furniture":1.15,"appliances":1.2,"building":1.3,"equipment":1.35}}}'),
       services: JSON.parse(localStorage.getItem('services')||JSON.stringify([
         {key:'house_move', name:'نقل أثاث منزلي', cat:'منزلي', enabled:true},
         {key:'appliance',  name:'أجهزة كهربائية', cat:'منزلي', enabled:true},
@@ -497,30 +521,32 @@
       // map toggle
       const tgl = document.getElementById('toggleMapBtn'); if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
 
-      // Install PWA handlers (existing in file)
-      try{ /* kept as-is - see previous block */ }catch(_){ }
-
       // boot
-      history.replaceState(null, '', location.pathname);
-      openView('landing'); initLeaflet(); updateUI();
+      history.replaceState(null, '', location.pathname); openView('landing'); initLeaflet(); updateUI();
 
       // listeners
       const q = document.getElementById('svcSearch'); if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
       const chips = document.getElementById('svcCats'); if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
       const testBtn = document.getElementById('runTestsBtn'); if(testBtn){ testBtn.addEventListener('click', runTests); }
 
-      // GPS button
+      // GPS buttons
       const gps = document.getElementById('useGPS'); if(gps){ gps.addEventListener('click', useMyLocation); }
+      const gpsD = document.getElementById('useGPSDrop'); if(gpsD){ gpsD.addEventListener('click', useMyLocationDrop); }
 
-      // Live polling (localStorage-based)
+      // Copy coord buttons
+      const cP = document.getElementById('copyPickup'); if(cP){ cP.addEventListener('click', ()=>copyCoords('pickup')); }
+      const cD = document.getElementById('copyDropoff'); if(cD){ cD.addEventListener('click', ()=>copyCoords('dropoff')); }
+
+      // Live polling using configured interval
       let lastOrdersJSON = JSON.stringify(S.orders);
+      const pollMs = Math.max(4000, (S.pricing.pollSec||8)*1000);
       setInterval(()=>{
         try{
           const nowOrders = JSON.parse(localStorage.getItem('orders')||'[]');
           const js = JSON.stringify(nowOrders);
           if(js!==lastOrdersJSON){ S.orders = nowOrders; lastOrdersJSON = js; updateUI(); }
         }catch(_){/* ignore */}
-      }, 12000);
+      }, pollMs);
     });
 
       const q = document.getElementById('svcSearch'); if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
@@ -585,8 +611,10 @@
       const size = byId('cargoSize')?.value||'small';
       const type = byId('cargoType')?.value||'boxes';
       const weight = +byId('weightKg')?.value||0;
-      const multSize = size==='big'?1.8:size==='medium'?1.3:1;
-      const multType = ({boxes:1, furniture:1.15, appliances:1.2, building:1.3, equipment:1.35})[type]||1;
+      const ms = S.pricing.multipliers?.size || {small:1,medium:1.3,big:1.8};
+      const mt = S.pricing.multipliers?.type || {boxes:1,furniture:1.15,appliances:1.2,building:1.3,equipment:1.35};
+      const multSize = ms[size] ?? 1;
+      const multType = mt[type] ?? 1;
       const extraW = Math.max(0, weight - (S.pricing.freeKg||50));
       const weightFee = extraW * (S.pricing.perKg||0.5);
       const price = Math.round((base + km*r)*multSize*multType + weightFee);
@@ -633,7 +661,22 @@
         kmRate: +val('kmRate')||3,
         baseFee: +val('baseFee')||20,
         perKg: +val('perKg')||0.5,
-        freeKg: +val('freeKg')||50
+        freeKg: +val('freeKg')||50,
+        pollSec: +val('pollSec')||8,
+        multipliers: {
+          size: {
+            small: +val('mSmall')||1,
+            medium: +val('mMedium')||1.3,
+            big: +val('mBig')||1.8
+          },
+          type: {
+            boxes: +val('tBoxes')||1,
+            furniture: +val('tFurniture')||1.15,
+            appliances: +val('tAppliances')||1.2,
+            building: +val('tBuilding')||1.3,
+            equipment: +val('tEquipment')||1.35
+          }
+        }
       };
       persist(); byId('pricingSaved').textContent = 'تم تحديث التسعير.';
     }; persist(); byId('pricingSaved').textContent = 'تم تحديث التسعير.'; }
@@ -950,6 +993,28 @@
       console.assert(typeof estimate==='function','estimate موجودة');
       const p0=S.pricing.kmRate; S.pricing.kmRate=5; const t1=estimate(); S.pricing.kmRate=p0; console.assert(typeof t1==='number','estimate تُعيد رقم');
     }catch(_){} })();
+      function useMyLocation(){
+      if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return; }
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        const {latitude:lat, longitude:lng} = pos.coords;
+        if(map){ map.setView([lat,lng], 14); }
+        setPickup(lat,lng); reverseGeocode(lat,lng,'pickup','pickupHint'); drawRouteIfReady();
+      }, (err)=>{ alert('تعذّر الحصول على الموقع: '+ err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
+    }
+    function useMyLocationDrop(){
+      if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return; }
+      navigator.geolocation.getCurrentPosition((pos)=>{
+        const {latitude:lat, longitude:lng} = pos.coords;
+        if(map){ map.setView([lat,lng], 14); }
+        setDropoff(lat,lng); reverseGeocode(lat,lng,'dropoff','dropoffHint'); drawRouteIfReady();
+      }, (err)=>{ alert('تعذّر الحصول على الموقع: '+ err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
+    }
+    function copyCoords(which){
+      const p = which==='pickup'? window.mapState.pickup : window.mapState.dropoff;
+      if(!p){ alert('لم يتم تحديد النقطة بعد'); return; }
+      const txt = `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
+      navigator.clipboard?.writeText(txt).then(()=>toast('تم نسخ الإحداثيات')).catch(()=>alert(txt));
+    }
   </script>
 </body>
 </html>
