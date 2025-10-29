@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>وسيلة — نموذج أولي لحسابات التطبيق</title>
+  <meta name="theme-color" content="#23c7c2" />
   <style>
     :root{
       --bg:#f6fbfc; --card:#ffffff; --muted:#667085; --text:#0f172a;
@@ -95,6 +96,9 @@
     .mapCtrls{position:absolute;inset-inline-end:10px;inset-block-start:10px;display:flex;flex-direction:column;gap:8px;z-index:5}
     .mapBtn{padding:10px 12px;border-radius:12px;border:1px solid #cbd5e1;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
     .mapBtn:hover{border-color:#67e8f9}
+    /* Toast */
+    .toast{position:fixed;inset-inline:12px;inset-block-end:calc(var(--navH) + 12px);background:#003; color:#e6fffb; padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);display:none}
+    .toast.show{display:block}
   </style>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -131,6 +135,7 @@
         </div>
       </div>
       <div class="actions">
+        <button class="btn" id="installBtn" style="display:none" title="تثبيت كتطبيق">تثبيت وسيلة</button>
         <button class="btn ghost" id="toggleMapBtn" title="إظهار / إخفاء الخريطة">إظهار/إخفاء الخريطة</button>
         <button class="btn" onclick="openView('landing')">الواجهة الرئيسية</button>
       </div>
@@ -399,6 +404,8 @@
 
   </main>
 
+  <div class="toast" id="toast"></div>
+
   <!-- شريط تنقّل سفلي (أسلوب تطبيق جوال) -->
   <nav class="appTabs" role="navigation" aria-label="تبويب التطبيق">
     <button onclick="openView('landing')" id="tabHome"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M9 21V12h6v9"/></svg><span>الرئيسية</span></button>
@@ -481,6 +488,54 @@
       if(recBtn) recBtn.addEventListener('click', recenterMap);
 
       // map toggle
+      const tgl = document.getElementById('toggleMapBtn'); if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
+
+      // PWA manifest + SW (in-page)
+      try{
+        const manifest = {name:'وسيلة', short_name:'وسيلة', start_url:'./', display:'standalone', dir:'rtl', lang:'ar', theme_color:'#23c7c2', background_color:'#ffffff'};
+        const blob = new Blob([JSON.stringify(manifest)], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('link'); link.rel='manifest'; link.href=url; document.head.appendChild(link);
+        const swCode = `self.addEventListener('install',e=>{self.skipWaiting(); e.waitUntil(caches.open('wasila-v1').then(c=>c.addAll(['/','https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'])))});self.addEventListener('activate',e=>self.clients.claim());self.addEventListener('fetch',e=>{e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request)))})`;
+        const swBlob = new Blob([swCode], {type:'text/javascript'});
+        const swUrl = URL.createObjectURL(swBlob);
+        if('serviceWorker' in navigator){ navigator.serviceWorker.register(swUrl); }
+      }catch(_){/* ignore */}
+
+      // Install prompt
+      let deferredPrompt=null; const installBtn = document.getElementById('installBtn');
+      window.addEventListener('beforeinstallprompt',(e)=>{ e.preventDefault(); deferredPrompt=e; if(installBtn){ installBtn.style.display='inline-block'; }});
+      if(installBtn){ installBtn.addEventListener('click', async()=>{ if(!deferredPrompt) return; deferredPrompt.prompt(); const {outcome}=await deferredPrompt.userChoice; toast(outcome==='accepted'?'تم التثبيت':'تم الإلغاء'); deferredPrompt=null; installBtn.style.display='none'; }); }
+
+      // boot
+      history.replaceState(null, '', location.pathname);
+      openView('landing');
+      initLeaflet();
+      updateUI();
+
+      const q = document.getElementById('svcSearch'); if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
+      const chips = document.getElementById('svcCats'); if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
+
+      const testBtn = document.getElementById('runTestsBtn'); if(testBtn){ testBtn.addEventListener('click', runTests); }
+    });
+          wrap.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
+          tab.classList.add('active');
+          const target = tab.dataset.target;
+          if(target){
+            wrap.querySelectorAll('#shipperBench,#shipper-orders').forEach(v=>v.hidden=true);
+            const tgt = wrap.querySelector('#'+target);
+            if(tgt){ tgt.closest('div').hidden=false; }
+          }
+        });
+      });
+
+      // map ctrl buttons
+      const fitBtn = document.getElementById('fitRouteBtn');
+      const recBtn = document.getElementById('recenterBtn');
+      if(fitBtn) fitBtn.addEventListener('click', fitToMarkersOrRoute);
+      if(recBtn) recBtn.addEventListener('click', recenterMap);
+
+      // map toggle
       const tgl = document.getElementById('toggleMapBtn');
       if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
 
@@ -515,12 +570,13 @@
     }
 
     function estimate(){
-      const km = kmBetween();
+      const km = (typeof lastRouteKm==='number' && lastRouteKm>0) ? Math.round(lastRouteKm) : kmBetween();
       const r = S.pricing.kmRate || 3; const base = S.pricing.baseFee || 20;
       const size = document.getElementById('cargoSize').value;
       const multiplier = size==='big'?1.8:size==='medium'?1.3:1;
       const price = Math.round((base + km*r)*multiplier);
-      document.getElementById('estimateOut').textContent = `تقدير: ~ ${price} ريال لمسافة ${km} كم`;
+      const eta = (typeof lastRouteETAmin==='number')? ` — زمن تقديري ~ ${Math.max(1,Math.round(lastRouteETAmin))} دقيقة` : '';
+      document.getElementById('estimateOut').textContent = `تقدير: ~ ${price} ريال لمسافة ${km} كم${eta}`;
       return price;
     }
 
@@ -732,7 +788,8 @@
     }
 
     // ===== Leaflet integration =====
-    let map, pickupMarker, dropoffMarker, routeLine; 
+    let map, pickupMarker, dropoffMarker, routeLine;
+    let lastRouteKm = null, lastRouteETAmin = null; // مخرجات OSRM عند توفرها 
     window.mapState = {pickup:null, dropoff:null};
 
     function initLeaflet(){
@@ -778,6 +835,14 @@
       window.mapState.pickup = {lat,lng}; if(!map) return;
       if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); }
       else{ pickupMarker = L.marker([lat,lng], {icon: icon||window.__truckIcon, draggable:true}).addTo(map);
+            pickupMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.pickup={lat:p.lat,lng:p.lng}; reverseGeocode(p.lat,p.lng,'pickup','pickupHint'); drawRouteIfReady(); }); }
+      document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      reverseGeocode(lat,lng,'pickup','pickupHint');
+      if(!(window.mapState.dropoff)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
+    }{
+      window.mapState.pickup = {lat,lng}; if(!map) return;
+      if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); }
+      else{ pickupMarker = L.marker([lat,lng], {icon: icon||window.__truckIcon, draggable:true}).addTo(map);
             pickupMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.pickup={lat:p.lat,lng:p.lng}; document.getElementById('pickupHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
       document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
       if(!(window.mapState.dropoff)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
@@ -787,15 +852,43 @@
       window.mapState.dropoff = {lat,lng}; if(!map) return;
       if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); }
       else{ dropoffMarker = L.marker([lat,lng], {icon: icon||window.__dropIcon, draggable:true}).addTo(map);
+            dropoffMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.dropoff={lat:p.lat,lng:p.lng}; reverseGeocode(p.lat,p.lng,'dropoff','dropoffHint'); drawRouteIfReady(); }); }
+      document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      reverseGeocode(lat,lng,'dropoff','dropoffHint');
+      if(!(window.mapState.pickup)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
+    }{
+      window.mapState.dropoff = {lat,lng}; if(!map) return;
+      if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); }
+      else{ dropoffMarker = L.marker([lat,lng], {icon: icon||window.__dropIcon, draggable:true}).addTo(map);
             dropoffMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.dropoff={lat:p.lat,lng:p.lng}; document.getElementById('dropoffHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
       document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
       if(!(window.mapState.pickup)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
     }
 
-    function drawRouteIfReady(){
+    async function drawRouteIfReady(){
       const a = window.mapState.pickup, b = window.mapState.dropoff; if(!a||!b||!map) return;
+      try{
+        const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+        const res = await fetch(url, {headers:{'Accept':'application/json'}});
+        const j = await res.json();
+        if(j && j.routes && j.routes[0]){
+          const r = j.routes[0];
+          lastRouteKm = r.distance/1000; lastRouteETAmin = r.duration/60;
+          const geo = L.geoJSON(r.geometry, {style:{weight:6, opacity:.95, color:'#23c7c2'}});
+          if(routeLine){ map.removeLayer(routeLine); }
+          routeLine = geo.addTo(map);
+          map.fitBounds(geo.getBounds(), { padding:[30,30] });
+          document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${Math.round(lastRouteKm)} كم — زمن ~ ${Math.max(1,Math.round(lastRouteETAmin))} دقيقة`;
+          return;
+        }
+      }catch(e){ console.warn('OSRM failed, fallback to straight line', e); }
+      // fallback إلى خط مستقيم
       const latlngs = [ [a.lat,a.lng], [b.lat,b.lng] ];
-      if(routeLine){ routeLine.setLatLngs(latlngs); }
+      if(routeLine){ routeLine.setLatLngs(latlngs); } else { routeLine = L.polyline(latlngs, {weight:6, opacity:.95, color:'#23c7c2'}).addTo(map); }
+      map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
+      lastRouteKm = kmBetween(); lastRouteETAmin = null;
+      document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${lastRouteKm} كم`;
+    }
       else { routeLine = L.polyline(latlngs, {weight:6, opacity:.95, color:'#23c7c2'}).addTo(map); }
       map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
       document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${kmBetween()} كم`;
@@ -809,6 +902,17 @@
       const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); }
     }
     function recenterMap(){ const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); } else { map.setView([24.7136,46.6753], 11); } }
+      async function reverseGeocode(lat,lng, fieldId, hintId){
+      try{
+        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar&zoom=18`;
+        const res = await fetch(url, {headers:{'Accept':'application/json'}});
+        const j = await res.json();
+        const txt = j && (j.display_name || j.name);
+        if(txt){ const fld = document.getElementById(fieldId); if(fld && (!fld.value||fld.value.length<5)) fld.value = txt; const hint = document.getElementById(hintId); if(hint){ hint.textContent = txt; } }
+      }catch(e){ /* صامت */ }
+    }
+
+    function toast(msg){ const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
   </script>
 </body>
 </html>
