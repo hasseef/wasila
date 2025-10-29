@@ -1,18 +1,4 @@
-pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'),
-      services: JSON.parse(localStorage.getItem('services')||JSON.stringify([
-        {key:'house_move', name:'نقل أثاث منزلي', cat:'منزلي', enabled:true},
-        {key:'appliance',  name:'أجهزة كهربائية', cat:'منزلي', enabled:true},
-        {key:'office',     name:'نقل مكتبي', cat:'تجاري', enabled:true},
-        {key:'flatbed',    name:'سطحة/معدات', cat:'معدات', enabled:true},
-        {key:'building',   name:'مواد بناء وحفر', cat:'معدات', enabled:true},
-        {key:'landscape',  name:'تنسيق حدائق ونخيل', cat:'منزلي', enabled:true},
-        {key:'event',      name:'تجهيز فعاليات ومعارض', cat:'تجاري', enabled:true},
-        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', cat:'معدات', enabled:true},
-        {key:'store',      name:'توصيل من متجر/مستودع', cat:'تجاري', enabled:true},
-        {key:'warehouse',  name:'مناولة بين المستودعات', cat:'لوجستي', enabled:true},
-        {key:'long',       name:'نقل بين المدن', cat:'لوجستي', enabled:true},
-        {key:'express',    name:'سريع داخل المدينة', cat:'سريع', enabled:true}
-      ]))<!doctype html>
+<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
@@ -20,26 +6,14 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
   <title>وسيلة — نموذج أولي لحسابات التطبيق</title>
   <style>
     :root{
-      /* لوحة فاتحة احترافية للهاتف مستوحاة من ونيت الحوض */
-      --bg:#f6fbfc;          /* خلفية عامة فاتحة */
-      --card:#ffffff;        /* بطاقات بيضاء */
-      --muted:#667085;       /* نص ثانوي */
-      --text:#0f172a;        /* نص أساسي داكن (slate-900) */
-      --brand:#23c7c2;       /* تركواز أساسي */
-      --brand-2:#7ce7e2;     /* تركواز فاتح للتدرج */
-      --danger:#ef4444;
-      --ok:#16a34a;          /* أخضر نجاح هادئ */
-      --warn:#f59e0b;
-      --b:#e5e7eb;           /* حدود فاتحة */
-      --ring:#22d3ee;        /* ظل تركوازي */
-      --shadow: 0 6px 24px rgba(14,165,233,.12), 0 2px 8px rgba(2,132,199,.08);
-      --radius:16px;
-      --tap:14px;            /* زيادة مساحة اللمس */
-      --navH:64px;           /* ارتفاع شريط التنقل السفلي */
+      --bg:#f6fbfc; --card:#ffffff; --muted:#667085; --text:#0f172a;
+      --brand:#23c7c2; --brand-2:#7ce7e2; --danger:#ef4444; --ok:#16a34a; --warn:#f59e0b;
+      --b:#e5e7eb; --ring:#22d3ee; --shadow: 0 6px 24px rgba(14,165,233,.12), 0 2px 8px rgba(2,132,199,.08);
+      --radius:16px; --navH:64px;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,var(--bg), #ffffff 65%, #f5ffff);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif;}
+    body{margin:0;background:linear-gradient(180deg,var(--bg),#fff 65%,#f5ffff);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif}
     a{color:inherit}
     .container{max-width:980px;margin:auto;padding:16px;padding-bottom:calc(16px + var(--navH));}
     header{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);z-index:50;border-bottom:1px solid var(--b)}
@@ -53,16 +27,13 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
     .accounts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
     @media(min-width:860px){.accounts{grid-template-columns:repeat(4,1fr)}}
 
-    .btn{width:100%;padding:16px;border-radius:14px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;color:var(--text);font-weight:800;box-shadow:0 1px 0 rgba(2,6,23,.04)}
+    .btn{width:100%;padding:16px;border-radius:14px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;color:var(--text);font-weight:800}
     .btn:hover{border-color:var(--brand)}
     .primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none;color:#063a3a}
     .ghost{background:transparent;border:1px dashed #cbd5e1}
 
     .workbench{display:grid;grid-template-columns:1fr;gap:16px}
     @media(min-width:1000px){.workbench{grid-template-columns:1fr 420px}}
-    .mapWrap{position:relative;min-height:360px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--b);background:#f0fbfc}
-    .mapFake{position:absolute;inset:0;z-index:1;background-image:radial-gradient(#d0f1f3 1px, transparent 1px);background-size:18px 18px;display:flex;align-items:center;justify-content:center;color:#0e7490;font-weight:800;letter-spacing:.5px}
-    .panel{position:relative;z-index:2}
 
     .row{display:grid;grid-template-columns:1fr;gap:10px}
     @media(min-width:680px){.row{grid-template-columns:1fr 1fr}}
@@ -84,8 +55,6 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
 
     footer{margin:24px 0 12px;color:#6b7280;font-size:12px}
 
-    .mapCollapsed .mapWrap{display:none}
-
     .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #d1e4ea;background:#f8ffff}
 
     /* شريط تنقّل سفلي بأسلوب تطبيق جوال */
@@ -93,14 +62,17 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
     .appTabs button{flex:1;border:0;background:transparent;font-weight:800;color:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
     .appTabs button .ico{width:22px;height:22px}
     .appTabs button.active{color:#0b6b6b}
-      /* Leaflet map sizing + glass look */
+
+    /* Leaflet map sizing + glass look */
     .mapWrap{position:relative;min-height:380px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--b);background:#eefbfd;box-shadow:var(--shadow)}
     .leaflet-map{position:absolute;inset:0}
     .glass{background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border:1px solid var(--b);box-shadow:var(--shadow);border-radius:12px}
     .field .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
     .pill{padding:8px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700}
     .pill.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
-  /* تحسين عرض خدمات الإدارة للجوال */
+    .pill.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:0;color:#063a3a}
+
+    /* تحسين عرض خدمات الإدارة للجوال */
     .service-grid{display:grid;grid-template-columns:1fr;gap:12px}
     @media(min-width:480px){.service-grid{grid-template-columns:1fr 1fr}}
     @media(min-width:860px){.service-grid{grid-template-columns:1fr 1fr 1fr}}
@@ -109,24 +81,6 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
     .service-card .meta{flex:1;min-width:0}
     .service-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .service-card .meta .muted{font-size:12px}
-    /* Switch (لمس كبير) */
-    .switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
-    .switch input{appearance:none;width:44px;height:26px;border-radius:999px;border:1px solid #cbd5e1;background:#e5f9fb;outline:none;position:relative;transition:.2s}
-    .switch input::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:.2s}
-    .switch input:checked{background:linear-gradient(180deg,var(--brand),var(--brand-2));border-color:transparent}
-    .switch input:checked::after{right:21px}
-    .badge.on{border-color:#a7f3d0}
-    .badge.off{border-color:#fecaca}
-  /* تحسين عرض خدمات الإدارة للجوال */
-    .service-grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:480px){.service-grid{grid-template-columns:1fr 1fr}}
-    @media(min-width:860px){.service-grid{grid-template-columns:1fr 1fr 1fr}}
-    .service-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--b);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
-    .service-card .ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));color:#063a3a;font-weight:900}
-    .service-card .meta{flex:1;min-width:0}
-    .service-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .service-card .meta .muted{font-size:12px}
-    /* Switch (لمس كبير) */
     .switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
     .switch input{appearance:none;width:44px;height:26px;border-radius:999px;border:1px solid #cbd5e1;background:#e5f9fb;outline:none;position:relative;transition:.2s}
     .switch input::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:.2s}
@@ -136,6 +90,11 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
     .badge.off{border-color:#fecaca}
     .svc-group{display:grid;gap:8px}
     .svc-group h5{margin:8px 0 0;font-size:14px;color:#0b6b6b}
+
+    /* map controls */
+    .mapCtrls{position:absolute;inset-inline-end:10px;inset-block-start:10px;display:flex;flex-direction:column;gap:8px;z-index:5}
+    .mapBtn{padding:10px 12px;border-radius:12px;border:1px solid #cbd5e1;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
+    .mapBtn:hover{border-color:#67e8f9}
   </style>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -159,13 +118,9 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
                 <stop offset="1" stop-color="#b9f3f1"/>
               </linearGradient>
             </defs>
-            <!-- بدن ونيت مع حوض واضح وليس تاكسي -->
             <path d="M6 40h82c3 0 5-2 5-5v-7c0-1.2-.9-2.8-1.9-3.7l-10.5-9.6A6 6 0 0 0 76 12H58a4 4 0 0 0-4 4v6H24a10 10 0 0 0-10 10v8z" fill="url(#trg)"/>
-            <!-- زجاج الكبينة -->
             <path d="M54 18h17c1.1 0 2.2.4 3 1.1l9.2 8.1H54V18z" fill="url(#glass)"/>
-            <!-- أرضية الحوض -->
             <rect x="6" y="42" width="116" height="5" rx="2.5" fill="#d1faf5"/>
-            <!-- عجلات -->
             <circle cx="32" cy="47" r="8" fill="#0ea5a4"/><circle cx="32" cy="47" r="3.8" fill="#ecfeff"/>
             <circle cx="96" cy="47" r="8" fill="#0ea5a4"/><circle cx="96" cy="47" r="3.8" fill="#ecfeff"/>
           </svg>
@@ -207,7 +162,10 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
       <div class="workbench" id="shipperBench">
         <div class="mapWrap">
           <div id="leafletMap" class="leaflet-map" role="region" aria-label="خريطة وسيلة"></div>
-        </div>
+          <div class="mapCtrls" aria-hidden="false">
+            <button type="button" class="mapBtn" id="fitRouteBtn">ملاءمة المسار</button>
+            <button type="button" class="mapBtn" id="recenterBtn">إرجاع الخريطة</button>
+          </div>
         </div>
         <div class="panel card">
           <h3>طلب توصيل <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
@@ -297,19 +255,10 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
             <div class="field">
               <label>المنطقة</label>
               <select id="region">
-                <option>منطقة حائل</option>
-                <option>منطقة الرياض</option>
-                <option>منطقة مكة المكرمة</option>
-                <option>المنطقة الشرقية</option>
-                <option>المدينة المنورة</option>
-                <option>القصيم</option>
-                <option>تبوك</option>
-                <option>عسير</option>
-                <option>جازان</option>
-                <option>نجران</option>
-                <option>الباحة</option>
-                <option>الجوف</option>
-                <option>الحدود الشمالية</option>
+                <option>منطقة حائل</option><option>منطقة الرياض</option><option>منطقة مكة المكرمة</option>
+                <option>المنطقة الشرقية</option><option>المدينة المنورة</option><option>القصيم</option>
+                <option>تبوك</option><option>عسير</option><option>جازان</option>
+                <option>نجران</option><option>الباحة</option><option>الجوف</option><option>الحدود الشمالية</option>
               </select>
             </div>
             <div class="field">
@@ -322,34 +271,16 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
         <div class="card">
           <h4>بيانات السائق</h4>
           <div class="row">
-            <div class="field">
-              <label>الاسم الثلاثي</label>
-              <input id="driverName" placeholder="الاسم الكامل"/>
-            </div>
-            <div class="field">
-              <label>رقم الهوية</label>
-              <input id="nid" placeholder="10 أرقام" maxlength="10"/>
-            </div>
+            <div class="field"><label>الاسم الثلاثي</label><input id="driverName" placeholder="الاسم الكامل"/></div>
+            <div class="field"><label>رقم الهوية</label><input id="nid" placeholder="10 أرقام" maxlength="10"/></div>
           </div>
           <div class="row">
-            <div class="field">
-              <label>رقم رخصة القيادة</label>
-              <input id="licenseNo" placeholder="رقم الرخصة"/>
-            </div>
-            <div class="field">
-              <label>تاريخ انتهاء الرخصة</label>
-              <input id="licenseExp" type="date"/>
-            </div>
+            <div class="field"><label>رقم رخصة القيادة</label><input id="licenseNo" placeholder="رقم الرخصة"/></div>
+            <div class="field"><label>تاريخ انتهاء الرخصة</label><input id="licenseExp" type="date"/></div>
           </div>
           <div class="row">
-            <div class="field">
-              <label>نسخة الرخصة (صورة)</label>
-              <input type="file" id="licenseImg" accept="image/*"/>
-            </div>
-            <div class="field">
-              <label>IBAN للحوالات</label>
-              <input id="iban" placeholder="SA.."/>
-            </div>
+            <div class="field"><label>نسخة الرخصة (صورة)</label><input type="file" id="licenseImg" accept="image/*"/></div>
+            <div class="field"><label>IBAN للحوالات</label><input id="iban" placeholder="SA.."/></div>
           </div>
           <div class="actions">
             <button class="btn primary" onclick="saveOwner()">حفظ التسجيل</button>
@@ -489,40 +420,39 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
       drivers: JSON.parse(localStorage.getItem('drivers')||'[]'),
       pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'),
       services: JSON.parse(localStorage.getItem('services')||JSON.stringify([
-        {key:'house_move', name:'نقل أثاث منزلي', enabled:true},
-        {key:'appliance',  name:'أجهزة كهربائية', enabled:true},
-        {key:'office',     name:'نقل مكتبي', enabled:true},
-        {key:'flatbed',    name:'سطحة/معدات', enabled:true},
-        {key:'building',   name:'مواد بناء وحفر', enabled:true},
-        {key:'landscape',  name:'تنسيق حدائق ونخيل', enabled:true},
-        {key:'event',      name:'تجهيز فعاليات ومعارض', enabled:true},
-        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', enabled:true},
-        {key:'store',      name:'توصيل من متجر/مستودع', enabled:true},
-        {key:'warehouse',  name:'مناولة بين المستودعات', enabled:true},
-        {key:'long',       name:'نقل بين المدن', enabled:true},
-        {key:'express',    name:'سريع داخل المدينة', enabled:true}
+        {key:'house_move', name:'نقل أثاث منزلي', cat:'منزلي', enabled:true},
+        {key:'appliance',  name:'أجهزة كهربائية', cat:'منزلي', enabled:true},
+        {key:'office',     name:'نقل مكتبي', cat:'تجاري', enabled:true},
+        {key:'flatbed',    name:'سطحة/معدات', cat:'معدات', enabled:true},
+        {key:'building',   name:'مواد بناء وحفر', cat:'معدات', enabled:true},
+        {key:'landscape',  name:'تنسيق حدائق ونخيل', cat:'منزلي', enabled:true},
+        {key:'event',      name:'تجهيز فعاليات ومعارض', cat:'تجاري', enabled:true},
+        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', cat:'معدات', enabled:true},
+        {key:'store',      name:'توصيل من متجر/مستودع', cat:'تجاري', enabled:true},
+        {key:'warehouse',  name:'مناولة بين المستودعات', cat:'لوجستي', enabled:true},
+        {key:'long',       name:'نقل بين المدن', cat:'لوجستي', enabled:true},
+        {key:'express',    name:'سريع داخل المدينة', cat:'سريع', enabled:true}
       ]))
     };
     // حالة الطلب: new, assigned, in_progress, completed, cancelled
 
-    // ---- Define openView EARLY so inline onclick & router can use it ----
+    // ---- Helpers ----
+    function val(id){return document.getElementById(id)?.value?.trim()||''}
+    function byId(id){return document.getElementById(id)}
+    function esc(s){return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
+    function mapStatus(s){ return s==='new'?'جديد': s==='assigned'?'مُسند': s==='in_progress'?'قيد التنفيذ': s==='completed'?'مكتمل': s==='cancelled'?'ملغي':'غير معروف'; }
+    function persist(){ localStorage.setItem('orders', JSON.stringify(S.orders)); localStorage.setItem('owners', JSON.stringify(S.owners)); localStorage.setItem('drivers', JSON.stringify(S.drivers)); localStorage.setItem('pricing', JSON.stringify(S.pricing)); localStorage.setItem('services', JSON.stringify(S.services)); }
+
+    // ---- Define openView EARLY ----
     window.openView = function openView(id){
       document.querySelectorAll('main > section').forEach(sec=>sec.hidden = true);
       const el = document.getElementById(id) || document.getElementById('landing');
       el.hidden = false;
-      // حدّث تبويب التطبيق السفلي
       document.querySelectorAll('.appTabs button').forEach(b=>b.classList.remove('active'));
       const mapIdToBtn = {landing:'tabHome', shipper:'tabShip', driver:'tabDrv', owner:'tabOwn', admin:'tabAdm'};
       const btnId = mapIdToBtn[id]; if(btnId) document.getElementById(btnId).classList.add('active');
-      // FIX: Leaflet needs invalidateSize() عند إظهار القسم بعد أن كان مخفياً
       if(id==='shipper' && typeof L!=='undefined' && window.map){
-        setTimeout(()=>{
-          try{
-            window.map.invalidateSize();
-            // لو كان فيه نقاط مختارة ارسم المسار وملاءمة العرض
-            if(window.mapState?.pickup && window.mapState?.dropoff){ drawRouteIfReady(); }
-          }catch(_){/*ignore*/}
-        }, 0);
+        setTimeout(()=>{ try{ window.map.invalidateSize(); if(window.mapState?.pickup && window.mapState?.dropoff){ drawRouteIfReady(); } }catch(_){} },0);
       }
       updateUI();
     }
@@ -544,6 +474,13 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
         });
       });
 
+      // map ctrl buttons
+      const fitBtn = document.getElementById('fitRouteBtn');
+      const recBtn = document.getElementById('recenterBtn');
+      if(fitBtn) fitBtn.addEventListener('click', fitToMarkersOrRoute);
+      if(recBtn) recBtn.addEventListener('click', recenterMap);
+
+      // map toggle
       const tgl = document.getElementById('toggleMapBtn');
       if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
 
@@ -562,35 +499,12 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
       const testBtn = document.getElementById('runTestsBtn');
       if(testBtn){ testBtn.addEventListener('click', runTests); }
     });
-      });
 
-      // map toggle
-      const tgl = document.getElementById('toggleMapBtn');
-      if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
-
-      // boot: always land on landing without showing hash
-      history.replaceState(null, '', location.pathname);
-      openView('landing');
-      initLeaflet();
-      updateUI();
-
-      // bind map picking buttons
-      const pp = document.getElementById('pickPickup');
-      const pd = document.getElementById('pickDropoff');
-      if(pp) pp.addEventListener('click', ()=>enterMapPickMode('pickup'));
-      if(pd) pd.addEventListener('click', ()=>enterMapPickMode('dropoff'));
-
-      // tests
-      const testBtn = document.getElementById('runTestsBtn');
-      if(testBtn){ testBtn.addEventListener('click', runTests); }
-    });
-
+    // ---- Pricing & Orders ----
     function kmBetween(){
-      // if both points selected on map, compute haversine; else fallback to ~random
       if(window.mapState?.pickup && window.mapState?.dropoff){
         const {pickup, dropoff} = window.mapState;
-        const R = 6371; // km
-        const toRad = d => d*Math.PI/180;
+        const R = 6371; const toRad = d => d*Math.PI/180;
         const dLat = toRad(dropoff.lat - pickup.lat);
         const dLon = toRad(dropoff.lng - pickup.lng);
         const a = Math.sin(dLat/2)**2 + Math.cos(toRad(pickup.lat))*Math.cos(toRad(dropoff.lat))*Math.sin(dLon/2)**2;
@@ -618,12 +532,10 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
         price: estimate(), id: Date.now(), status: 'new', driverId: null
       };
       if(!data.pickup||!data.dropoff){alert('يرجى إدخال الاستلام والتسليم');return}
-      S.orders.unshift(data);
-      persist();
+      S.orders.unshift(data); persist();
       document.getElementById('estimateOut').textContent = 'تم إرسال الطلب.';
       updateUI();
-      const tab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]');
-      if(tab) tab.click();
+      const tab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]'); if(tab) tab.click();
     }
 
     function saveOwner(){
@@ -644,24 +556,18 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
 
     function toggleAvail(){updateUI()}
 
-    function savePricing(){
-      S.pricing = {kmRate: +val('kmRate')||3, baseFee: +val('baseFee')||20};
-      persist();
-      byId('pricingSaved').textContent = 'تم تحديث التسعير.';
-    }
+    function savePricing(){ S.pricing = {kmRate: +val('kmRate')||3, baseFee: +val('baseFee')||20}; persist(); byId('pricingSaved').textContent = 'تم تحديث التسعير.'; }
 
-    // السائق يقبل طلب
     function driverAccept(orderId){
-      const d = S.drivers[0]; // لأغراض التجربة: أول سائق مُسجل
+      const d = S.drivers[0];
       const o = S.orders.find(x=>x.id===orderId);
       if(!o) return;
-      o.driverId = d? d.id : null;
-      o.status = 'in_progress';
-      persist();
-      updateUI();
-      alert('تم قبول الطلب والبدء في تنفيذه');
+      o.driverId = d? d.id : null; o.status = 'in_progress'; persist(); updateUI(); alert('تم قبول الطلب والبدء في تنفيذه');
     }
 
+    function labelOf(key){ const f = S.services.find(s=>s.key===key); return f?f.name:key; }
+
+    // ---- UI rendering ----
     function updateUI(){
       // services in shipper form
       const svcSel = byId('serviceType');
@@ -681,9 +587,53 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
           </div></div>`).join('');
       }
 
-      // Admin services toggles
-      const adminSvc = byId('adminServices');
-      if(adminSvc){ renderAdminServices(); }
+      // Admin services
+      const adminSvc = byId('adminServices'); if(adminSvc){ renderAdminServices(); }
+
+      // Admin stats
+      byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
+      byId('stOrders').textContent = S.orders.slice(0,10).length;
+      byId('stDrivers').textContent = S.drivers.filter(d=>d.available).length;
+      byId('stVehicles').textContent = S.owners.length;
+
+      // Admin orders table
+      const adminOrders = byId('adminOrders');
+      if(adminOrders){
+        if(!S.orders.length) adminOrders.textContent = 'لا توجد بيانات.'; else{
+          adminOrders.innerHTML = '';
+          S.orders.forEach(o=>{
+            const row = document.getElementById('orderRowTmpl').content.cloneNode(true);
+            const root = row.querySelector('.card');
+            root.dataset.id = o.id;
+            row.querySelector('.from').textContent = o.pickup;
+            row.querySelector('.to').textContent = o.dropoff;
+            row.querySelector('.time').textContent = new Date(o.id).toLocaleString('ar-SA');
+            const stEl = row.querySelector('.status'); stEl.textContent = mapStatus(o.status);
+            if(o.status==='completed'||o.status==='cancelled'){ row.querySelector('[data-action="complete"]').disabled = true; }
+            row.querySelector('[data-action="complete"]').addEventListener('click',()=>{ o.status='completed'; persist(); updateUI();});
+            row.querySelector('[data-action="cancel"]').addEventListener('click',()=>{ o.status='cancelled'; persist(); updateUI();});
+            adminOrders.appendChild(row);
+          });
+        }
+      }
+
+      // Nearby for driver (last 5 new)
+      const near = byId('nearbyList');
+      if(near){
+        const avail = S.orders.filter(o=>o.status==='new').slice(0,5);
+        if(!avail.length) near.innerHTML = '<li class="muted">لا توجد طلبات قريبة الآن.</li>';
+        else{
+          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b>${o.service?` — <span class=\\\"badge\\\">${esc(labelOf(o.service))}</span>`:''}<br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn primary\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
+        }
+      }
+
+      // Owners table
+      const ownersHost = byId('ownersTable');
+      if(ownersHost){
+        if(!S.owners.length) ownersHost.textContent = 'لا يوجد مُلاك بعد.'; else{
+          ownersHost.innerHTML = S.owners.map(o=>`<div class=\"card\" style=\"margin:6px 0\"><b>${esc(o.driverName)}</b> — ${esc(o.vehType)} | ${esc(o.region)} <span class=\"muted\">${esc(o.plate)}</span></div>`).join('');
+        }
+      }
     }
 
     // ===== Admin services rendering + filters + drag&drop =====
@@ -726,14 +676,7 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
     function serviceCardHTML(s, idx){
       const letter = s.name.trim().charAt(0);
       const id = `svc_${idx}`;
-      return `<div class=\"service-card\" draggable=\"true\" data-index=\"${idx}\" aria-grabbed=\"false\">
-        <div class=\"ico\" aria-hidden=\"true\">${letter}</div>
-        <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>
-        <label class=\"switch\" for=\"${id}\">
-          <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${idx}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />
-        </label>
-        <span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>
-      </div>`
+      return `<div class=\"service-card\" draggable=\"true\" data-index=\"${idx}\" aria-grabbed=\"false\">\n        <div class=\"ico\" aria-hidden=\"true\">${letter}</div>\n        <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>\n        <label class=\"switch\" for=\"${id}\">\n          <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${idx}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />\n        </label>\n        <span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>\n      </div>`
     }
 
     function bindServiceCardDnD(root){
@@ -754,61 +697,11 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
           }
         });
       });
-    }      // Admin stats
-      byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
-      byId('stOrders').textContent = S.orders.slice(0,10).length;
-      byId('stDrivers').textContent = S.drivers.filter(d=>d.available).length;
-      byId('stVehicles').textContent = S.owners.length;
-
-      // Admin orders table
-      const adminOrders = byId('adminOrders');
-      if(adminOrders){
-        if(!S.orders.length) adminOrders.textContent = 'لا توجد بيانات.'; else{
-          adminOrders.innerHTML = '';
-          S.orders.forEach(o=>{
-            const row = document.getElementById('orderRowTmpl').content.cloneNode(true);
-            const root = row.querySelector('.card');
-            root.dataset.id = o.id;
-            row.querySelector('.from').textContent = o.pickup;
-            row.querySelector('.to').textContent = o.dropoff;
-            row.querySelector('.time').textContent = new Date(o.id).toLocaleString('ar-SA');
-            const stEl = row.querySelector('.status');
-            stEl.textContent = mapStatus(o.status);
-            if(o.status==='completed'||o.status==='cancelled'){ row.querySelector('[data-action=\"complete\"]').disabled = true; }
-            row.querySelector('[data-action=\"complete\"]').addEventListener('click',()=>{ o.status='completed'; persist(); updateUI();});
-            row.querySelector('[data-action=\"cancel\"]').addEventListener('click',()=>{ o.status='cancelled'; persist(); updateUI();});
-            adminOrders.appendChild(row);
-          });
-        }
-      }
-      // Nearby for driver (show last 5 orders that are new)
-      const near = byId('nearbyList');
-      if(near){
-        const avail = S.orders.filter(o=>o.status==='new').slice(0,5);
-        if(!avail.length) near.innerHTML = '<li class="muted">لا توجد طلبات قريبة الآن.</li>'; else{
-          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b>${o.service?` — <span class=\\\"badge\\\">${esc(labelOf(o.service))}</span>`:''}<br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn primary\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
-        }
-      }
-      // Owners table
-      const ownersHost = byId('ownersTable');
-      if(ownersHost){
-        if(!S.owners.length) ownersHost.textContent = 'لا يوجد مُلاك بعد.'; else{
-          ownersHost.innerHTML = S.owners.map(o=>`<div class=\"card\" style=\"margin:6px 0\"><b>${esc(o.driverName)}</b> — ${esc(o.vehType)} | ${esc(o.region)} <span class=\"muted\">${esc(o.plate)}</span></div>`).join('');
-        }
-      }
     }
 
     function toggleService(i, val){ S.services[i].enabled = !!val; persist(); updateUI(); }
 
-    function labelOf(key){ const f = S.services.find(s=>s.key===key); return f?f.name:key; }
-
-    function val(id){return document.getElementById(id)?.value?.trim()||''}
-    function byId(id){return document.getElementById(id)}
-    function esc(s){return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
-    function mapStatus(s){ return s==='new'?'جديد': s==='assigned'?'مُسند': s==='in_progress'?'قيد التنفيذ': s==='completed'?'مكتمل': s==='cancelled'?'ملغي':'غير معروف'; }
-    function persist(){ localStorage.setItem('orders', JSON.stringify(S.orders)); localStorage.setItem('owners', JSON.stringify(S.owners)); localStorage.setItem('drivers', JSON.stringify(S.drivers)); localStorage.setItem('pricing', JSON.stringify(S.pricing)); localStorage.setItem('services', JSON.stringify(S.services)); }
-
-    // ---- Minimal front-end test cases (unchanged) ----
+    // ---- Minimal front-end test cases (unchanged logic, cleaned) ----
     function runTests(){
       const results = [];
       const assert = (name, cond) => results.push({اختبار:name, النتيجة: cond? 'PASS':'FAIL'});
@@ -818,82 +711,104 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
         ids.forEach(id=>{ window.openView(id); const sec = document.getElementById(id); assert(`إظهار القسم ${id}`, sec && sec.hidden===false); });
         location.hash = '#owner'; window.dispatchEvent(new HashChangeEvent('hashchange')); assert('المسار بالهاش يعمل', !document.getElementById('owner').hidden);
         window.openView('shipper');
-        const newTab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]');
-        if(newTab){ newTab.click(); }
+        const newTab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]'); if(newTab){ newTab.click(); }
         assert('التبديل إلى تبويب "طلباتي"', document.getElementById('shipper-orders').hidden===false);
         const preCount = S.orders.length;
-        S.orders.unshift({id: Date.now()+1, pickup:'اختبار أ', dropoff:'اختبار ب', size:'small', price:50, status:'new', driverId:null});
-        persist();
+        S.orders.unshift({id: Date.now()+1, pickup:'اختبار أ', dropoff:'اختبار ب', size:'small', price:50, status:'new', driverId:null}); persist();
         assert('إضافة طلب اختباري', S.orders.length===preCount+1);
         const newId = S.orders[0].id; driverAccept(newId); assert('قبول السائق للطلب', S.orders[0].status==='in_progress');
         S.orders[0].status='completed'; persist(); assert('إكمال الطلب', S.orders[0].status==='completed');
         updateUI();
-        // اختبارات إضافية للإدارة: الفلترة والترتيب
+        // إدارة: فلترة وترتيب
         window.__svcQuery = 'نقل'; const before = filteredServices().length; assert('فلترة الخدمات بالكلمة تعمل', before>0);
         window.__svcCat = 'معدات'; const onlyEquip = filteredServices().every(s=>s.cat==='معدات'); assert('تصفية حسب الفئة تعمل', onlyEquip);
-        // محاكاة نقل عنصر في المصفوفة
+        // محاكاة إعادة ترتيب
         const len=S.services.length; const first=S.services[0]; S.services.splice(0,1); S.services.splice(2,0,first); persist(); assert('إعادة ترتيب الخدمات بالذاكرة', S.services.length===len && S.services[2]===first);
-      }catch(e){ console.error('Test error:', e); }
-      const host = document.getElementById('testResults');
-      if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('
-')+'</pre>'; }
-      console.table(results);
-      window.openView('landing');
       }catch(e){ console.error('Test error:', e); }
       const host = document.getElementById('testResults');
       if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
       console.table(results);
       window.openView('landing');
     }
-      // ===== Leaflet integration =====
+
+    // ===== Leaflet integration =====
     let map, pickupMarker, dropoffMarker, routeLine; 
     window.mapState = {pickup:null, dropoff:null};
 
     function initLeaflet(){
       if(typeof L === 'undefined'){ console.warn('Leaflet not loaded'); return; }
       if(map){ return; }
-      map = L.map('leafletMap', { zoomControl: true, attributionControl: true }).setView([24.7136,46.6753], 11); // Riyadh default
+      // load stored view if any
+      const stored = JSON.parse(localStorage.getItem('mapView')||'null');
+      const center = stored?.center || [24.7136,46.6753];
+      const zoom = stored?.zoom || 11;
+      map = L.map('leafletMap', { zoomControl: true, attributionControl: true }).setView(center, zoom);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
+      // persist view on move
+      map.on('moveend', ()=>{ const c = map.getCenter(); localStorage.setItem('mapView', JSON.stringify({center:[c.lat,c.lng], zoom: map.getZoom()})); });
 
       // custom divIcon as truck badge
       const truckSVG = `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 128 64'><defs><linearGradient id='t' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#23c7c2'/><stop offset='1' stop-color='#7ce7e2'/></linearGradient></defs><rect x='0' y='40' width='128' height='8' rx='4' fill='#cffafe'/><path d='M6 40h82c3 0 5-2 5-5v-7c0-1.2-.9-2.8-1.9-3.7l-10.5-9.6A6 6 0 0 0 76 12H58a4 4 0 0 0-4 4v6H24a10 10 0 0 0-10 10v8z' fill='url(#t)'/><circle cx='32' cy='47' r='8' fill='#0ea5a4'/><circle cx='32' cy='47' r='3.8' fill='#ecfeff'/><circle cx='96' cy='47' r='8' fill='#0ea5a4'/><circle cx='96' cy='47' r='3.8' fill='#ecfeff'/></svg>`;
-      const truckIcon = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
-      const dropIcon  = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px;transform:scale(.95)">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
+      window.__truckIcon = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
+      window.__dropIcon  = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px;transform:scale(.95)">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
 
       map.on('click', (e)=>{
         if(!window.mapPickMode) return;
         const {lat,lng} = e.latlng;
-        if(window.mapPickMode==='pickup'){
-          window.mapState.pickup = {lat,lng};
-          if(pickupMarker) pickupMarker.setLatLng([lat,lng]); else pickupMarker = L.marker([lat,lng], {icon:truckIcon}).addTo(map);
-          document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-        }else if(window.mapPickMode==='dropoff'){
-          window.mapState.dropoff = {lat,lng};
-          if(dropoffMarker) dropoffMarker.setLatLng([lat,lng]); else dropoffMarker = L.marker([lat,lng], {icon:dropIcon}).addTo(map);
-          document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-        }
+        if(window.mapPickMode==='pickup') setPickup(lat,lng, window.__truckIcon);
+        else if(window.mapPickMode==='dropoff') setDropoff(lat,lng, window.__dropIcon);
         exitMapPickMode();
         drawRouteIfReady();
+        if(!(window.mapState.pickup && window.mapState.dropoff)){
+          const p = window.mapState.pickup || window.mapState.dropoff; if(p && map){ map.setView([p.lat,p.lng], Math.max(14, map.getZoom())); }
+        }
       });
+
+      // bind pick buttons now that DOM exists
+      const pp = document.getElementById('pickPickup');
+      const pd = document.getElementById('pickDropoff');
+      if(pp) pp.addEventListener('click', ()=>enterMapPickMode('pickup'));
+      if(pd) pd.addEventListener('click', ()=>enterMapPickMode('dropoff'));
     }
 
-    function enterMapPickMode(which){
-      window.mapPickMode = which; // 'pickup' | 'dropoff'
-      document.getElementById(which==='pickup'?'pickPickup':'pickDropoff').classList.add('active');
+    function enterMapPickMode(which){ window.mapPickMode = which; document.getElementById(which==='pickup'?'pickPickup':'pickDropoff').classList.add('active'); }
+    function exitMapPickMode(){ ['pickPickup','pickDropoff'].forEach(id=>document.getElementById(id)?.classList.remove('active')); window.mapPickMode = null; }
+
+    function setPickup(lat,lng, icon){
+      window.mapState.pickup = {lat,lng}; if(!map) return;
+      if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); }
+      else{ pickupMarker = L.marker([lat,lng], {icon: icon||window.__truckIcon, draggable:true}).addTo(map);
+            pickupMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.pickup={lat:p.lat,lng:p.lng}; document.getElementById('pickupHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
+      document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      if(!(window.mapState.dropoff)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
     }
-    function exitMapPickMode(){
-      const btns=['pickPickup','pickDropoff']; btns.forEach(id=>{ const b=document.getElementById(id); if(b) b.classList.remove('active'); });
-      window.mapPickMode = null;
+
+    function setDropoff(lat,lng, icon){
+      window.mapState.dropoff = {lat,lng}; if(!map) return;
+      if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); }
+      else{ dropoffMarker = L.marker([lat,lng], {icon: icon||window.__dropIcon, draggable:true}).addTo(map);
+            dropoffMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.dropoff={lat:p.lat,lng:p.lng}; document.getElementById('dropoffHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
+      document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
+      if(!(window.mapState.pickup)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
     }
 
     function drawRouteIfReady(){
       const a = window.mapState.pickup, b = window.mapState.dropoff; if(!a||!b||!map) return;
       const latlngs = [ [a.lat,a.lng], [b.lat,b.lng] ];
-      if(routeLine){ routeLine.setLatLngs(latlngs); } else { routeLine = L.polyline(latlngs, {weight:5, opacity:.8}).addTo(map); }
+      if(routeLine){ routeLine.setLatLngs(latlngs); }
+      else { routeLine = L.polyline(latlngs, {weight:6, opacity:.95, color:'#23c7c2'}).addTo(map); }
       map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
-      // update estimate hint immediately
       document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${kmBetween()} كم`;
     }
+
+    function fitToMarkersOrRoute(){
+      const a = window.mapState?.pickup, b = window.mapState?.dropoff;
+      if(a && b && routeLine){ map.fitBounds(routeLine.getBounds(), {padding:[30,30]}); return; }
+      if(a){ map.setView([a.lat,a.lng], Math.max(14, map.getZoom())); return; }
+      if(b){ map.setView([b.lat,b.lng], Math.max(14, map.getZoom())); return; }
+      const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); }
+    }
+    function recenterMap(){ const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); } else { map.setView([24.7136,46.6753], 11); } }
   </script>
 </body>
 </html>
