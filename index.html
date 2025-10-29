@@ -510,10 +510,20 @@ pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20}'
       document.querySelectorAll('main > section').forEach(sec=>sec.hidden = true);
       const el = document.getElementById(id) || document.getElementById('landing');
       el.hidden = false;
-      // حدّث تنقّل التطبيق السفلي
+      // حدّث تبويب التطبيق السفلي
       document.querySelectorAll('.appTabs button').forEach(b=>b.classList.remove('active'));
       const mapIdToBtn = {landing:'tabHome', shipper:'tabShip', driver:'tabDrv', owner:'tabOwn', admin:'tabAdm'};
       const btnId = mapIdToBtn[id]; if(btnId) document.getElementById(btnId).classList.add('active');
+      // FIX: Leaflet needs invalidateSize() عند إظهار القسم بعد أن كان مخفياً
+      if(id==='shipper' && typeof L!=='undefined' && window.map){
+        setTimeout(()=>{
+          try{
+            window.map.invalidateSize();
+            // لو كان فيه نقاط مختارة ارسم المسار وملاءمة العرض
+            if(window.mapState?.pickup && window.mapState?.dropoff){ drawRouteIfReady(); }
+          }catch(_){/*ignore*/}
+        }, 0);
+      }
       updateUI();
     }
 
