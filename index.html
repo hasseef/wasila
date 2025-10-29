@@ -86,6 +86,23 @@
     .field .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
     .pill{padding:8px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700}
     .pill.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
+  /* تحسين عرض خدمات الإدارة للجوال */
+    .service-grid{display:grid;grid-template-columns:1fr;gap:12px}
+    @media(min-width:480px){.service-grid{grid-template-columns:1fr 1fr}}
+    @media(min-width:860px){.service-grid{grid-template-columns:1fr 1fr 1fr}}
+    .service-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--b);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
+    .service-card .ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));color:#063a3a;font-weight:900}
+    .service-card .meta{flex:1;min-width:0}
+    .service-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .service-card .meta .muted{font-size:12px}
+    /* Switch (لمس كبير) */
+    .switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
+    .switch input{appearance:none;width:44px;height:26px;border-radius:999px;border:1px solid #cbd5e1;background:#e5f9fb;outline:none;position:relative;transition:.2s}
+    .switch input::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:.2s}
+    .switch input:checked{background:linear-gradient(180deg,var(--brand),var(--brand-2));border-color:transparent}
+    .switch input:checked::after{right:21px}
+    .badge.on{border-color:#a7f3d0}
+    .badge.off{border-color:#fecaca}
   </style>
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
@@ -378,7 +395,7 @@
 
       <div class="card" style="margin-top:12px">
         <h4>الخدمات (تفعيل/تعطيل)</h4>
-        <div id="adminServices" class="accounts"></div>
+        <div id="adminServices" class="service-grid"></div>
       </div>
 
       <div class="card" style="margin-top:12px">
@@ -592,24 +609,21 @@
       // Admin services toggles
       const adminSvc = byId('adminServices');
       if(adminSvc){
-        adminSvc.innerHTML = S.services.map((s,i)=>
-          `<div class=\"card\" style=\"display:flex;align-items:center;justify-content:space-between;gap:8px\">
-            <div><b>${s.name}</b><div class=\"muted\">${s.key}</div></div>
-            <label class=\"tab\" style=\"display:inline-flex;align-items:center;gap:6px\">
-              <input type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${i}, this.checked)\"/>
-              ${s.enabled?'مُفعّل':'معطّل'}
+        adminSvc.innerHTML = S.services.map((s,i)=>{
+          const stateBadge = `<span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>`;
+          const letter = s.name.trim().charAt(0);
+          const id = `svc_${i}`;
+          return `<div class=\"service-card\">
+            <div class=\"ico\" aria-hidden=\"true\">${letter}</div>
+            <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>
+            <label class=\"switch\" for=\"${id}\">
+              <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${i}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />
             </label>
-          </div>`).join('');
+            ${stateBadge}
+          </div>`
+        }).join('');
       }
-
-      // Shipper orders list
-      const list = byId('ordersList');
-      if(list){
-        if(!S.orders.length){list.textContent = 'لا توجد طلبات بعد.'}
-        else{
-          list.innerHTML = S.orders.map(o=>`<div class=\"card\" style=\"margin:8px 0\"><b>من:</b> ${esc(o.pickup)} — <b>إلى:</b> ${esc(o.dropoff)}${o.service?` — <span class=\\\"badge\\\">${esc(labelOf(o.service))}</span>`:''}<br><span class=\"muted\">${new Date(o.id).toLocaleString('ar-SA')}</span><br><b>التقدير:</b> ${o.price} ريال <span class=\"badge\" style=\"border-color:#bfecef\">${mapStatus(o.status)}</span></div>`).join('');
-        }
-      }
+    }
       // Admin stats
       byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
       byId('stOrders').textContent = S.orders.slice(0,10).length;
