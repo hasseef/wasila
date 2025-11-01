@@ -1,0 +1,11 @@
+{
+  "name": "وسيلة — نموذج أولي",
+  "short_name": "وسيلة",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f6fbfc",
+  "theme_color": "#00C2C2",
+  "icons": []
+}

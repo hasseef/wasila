@@ -1,1020 +1,218 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>وسيلة — نموذج أولي لحسابات التطبيق</title>
-  <meta name="theme-color" content="#23c7c2" />
-  <style>
-    :root{
-      --bg:#f6fbfc; --card:#ffffff; --muted:#667085; --text:#0f172a;
-      --brand:#23c7c2; --brand-2:#7ce7e2; --danger:#ef4444; --ok:#16a34a; --warn:#f59e0b;
-      --b:#e5e7eb; --ring:#22d3ee; --shadow: 0 6px 24px rgba(14,165,233,.12), 0 2px 8px rgba(2,132,199,.08);
-      --radius:16px; --navH:64px;
-    }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{margin:0;background:linear-gradient(180deg,var(--bg),#fff 65%,#f5ffff);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Noto Naskh Arabic",Tahoma,sans-serif}
-    a{color:inherit}
-    .container{max-width:980px;margin:auto;padding:16px;padding-bottom:calc(16px + var(--navH));}
-    header{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);z-index:50;border-bottom:1px solid var(--b)}
-    .brand{display:flex;gap:12px;align-items:center}
-    .logoBox{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));box-shadow:var(--shadow)}
-    .title{font-weight:800;letter-spacing:.1px}
-
-    .card{background:var(--card);border:1px solid var(--b);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
-    .card h3{margin:0 0 10px 0}
-
-    .accounts{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-    @media(min-width:860px){.accounts{grid-template-columns:repeat(4,1fr)}}
-
-    .btn{width:100%;padding:16px;border-radius:14px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;color:var(--text);font-weight:800}
-    .btn:hover{border-color:var(--brand)}
-    .primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none;color:#063a3a}
-    .ghost{background:transparent;border:1px dashed #cbd5e1}
-
-    .workbench{display:grid;grid-template-columns:1fr;gap:16px}
-    @media(min-width:1000px){.workbench{grid-template-columns:1fr 420px}}
-
-    .row{display:grid;grid-template-columns:1fr;gap:10px}
-    @media(min-width:680px){.row{grid-template-columns:1fr 1fr}}
-    .field{display:grid;gap:6px;margin-bottom:10px}
-    label{font-size:12px;color:var(--muted)}
-    input,select,textarea{width:100%;padding:14px;border-radius:12px;background:#ffffff;border:1px solid #dbe4ea;color:var(--text)}
-    input:focus,select:focus,textarea:focus{outline:none;border-color:#99f6e4;box-shadow:0 0 0 6px rgba(34,211,238,.18)}
-    .muted{color:var(--muted);font-size:13px}
-    .actions{display:flex;gap:10px;flex-wrap:wrap}
-
-    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
-    .tab{padding:10px 14px;border-radius:999px;border:1px solid #cbd5e1;background:#ffffff;cursor:pointer;font-weight:800}
-    .tab.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
-
-    .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
-    @media(min-width:860px){.stats{grid-template-columns:repeat(4,1fr)}}
-    .stat{padding:14px;border-radius:12px;border:1px solid var(--b);background:#ffffff;box-shadow:var(--shadow)}
-    .stat b{font-size:22px}
-
-    footer{margin:24px 0 12px;color:#6b7280;font-size:12px}
-
-    .badge{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #d1e4ea;background:#f8ffff}
-
-    /* شريط تنقّل سفلي بأسلوب تطبيق جوال */
-    .appTabs{position:fixed;inset-inline:0;bottom:0;height:var(--navH);background:#fff;border-top:1px solid var(--b);display:flex;z-index:60}
-    .appTabs button{flex:1;border:0;background:transparent;font-weight:800;color:#0f172a;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
-    .appTabs button .ico{width:22px;height:22px}
-    .appTabs button.active{color:#0b6b6b}
-
-    /* Leaflet map sizing + glass look */
-    .mapWrap{position:relative;min-height:380px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--b);background:#eefbfd;box-shadow:var(--shadow)}
-    .leaflet-map{position:absolute;inset:0}
-    .glass{background:rgba(255,255,255,.75);backdrop-filter:blur(10px);border:1px solid var(--b);box-shadow:var(--shadow);border-radius:12px}
-    .field .inline-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .pill{padding:8px 12px;border-radius:999px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700}
-    .pill.active{border-color:#67e8f9;box-shadow:0 0 0 6px rgba(103,232,249,.2)}
-    .pill.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:0;color:#063a3a}
-
-    /* تحسين عرض خدمات الإدارة للجوال */
-    .service-grid{display:grid;grid-template-columns:1fr;gap:12px}
-    @media(min-width:480px){.service-grid{grid-template-columns:1fr 1fr}}
-    @media(min-width:860px){.service-grid{grid-template-columns:1fr 1fr 1fr}}
-    .service-card{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--b);border-radius:14px;background:#fff;box-shadow:var(--shadow)}
-    .service-card .ico{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(180deg,var(--brand-2),var(--brand));color:#063a3a;font-weight:900}
-    .service-card .meta{flex:1;min-width:0}
-    .service-card .meta b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .service-card .meta .muted{font-size:12px}
-    .switch{position:relative;display:inline-flex;align-items:center;gap:8px;cursor:pointer;font-weight:800}
-    .switch input{appearance:none;width:44px;height:26px;border-radius:999px;border:1px solid #cbd5e1;background:#e5f9fb;outline:none;position:relative;transition:.2s}
-    .switch input::after{content:"";position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:.2s}
-    .switch input:checked{background:linear-gradient(180deg,var(--brand),var(--brand-2));border-color:transparent}
-    .switch input:checked::after{right:21px}
-    .badge.on{border-color:#a7f3d0}
-    .badge.off{border-color:#fecaca}
-    .svc-group{display:grid;gap:8px}
-    .svc-group h5{margin:8px 0 0;font-size:14px;color:#0b6b6b}
-
-    /* map controls */
-    .mapCtrls{position:absolute;inset-inline-end:10px;inset-block-start:10px;display:flex;flex-direction:column;gap:8px;z-index:5}
-    .mapBtn{padding:10px 12px;border-radius:12px;border:1px solid #cbd5e1;background:rgba(255,255,255,.9);backdrop-filter:blur(8px);font-weight:800;cursor:pointer;box-shadow:var(--shadow)}
-    .mapBtn:hover{border-color:#67e8f9}
-    /* Toast */
-    .toast{position:fixed;inset-inline:12px;inset-block-end:calc(var(--navH) + 12px);background:#003; color:#e6fffb; padding:12px 14px;border-radius:12px;box-shadow:var(--shadow);display:none}
-    .toast.show{display:block}
-  </style>
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
-  <!-- Leaflet JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>وسيلة — نموذج أولي لحسابات التطبيق</title>
+<meta name="theme-color" content="#00C2C2"/>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#f6fbfc;--card:#fff;--muted:#667085;--text:#0f172a;--brand:#00C2C2;--brand-2:#8CF1EB;--radius:16px;--shadow:0 8px 30px rgba(2,132,199,.08);--navH:64px}
+*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial}
+body{margin:0;background:linear-gradient(180deg,#fbffff,#f6fbfc);color:var(--text)}
+header{height:var(--navH);display:flex;align-items:center;justify-content:space-between;padding:0 16px;position:sticky;top:0;z-index:40}
+.brand{display:flex;align-items:center;gap:12px}
+.brand svg{width:44px;height:44px}
+h1{font-size:18px;margin:0}
+main{padding:16px 12px 96px}
+.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px;margin-bottom:14px}
+.grid{display:grid;gap:12px}
+.tabs{position:fixed;left:0;right:0;bottom:0;height:72px;display:flex;background:linear-gradient(180deg,rgba(255,255,255,.9),#fff);box-shadow:0 -4px 18px rgba(2,132,199,.06);z-index:50;border-top-left-radius:12px;border-top-right-radius:12px;padding:8px 12px;gap:8px}
+.tab{flex:1;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:13px;color:var(--muted);cursor:pointer}
+.tab.active{background:linear-gradient(90deg,var(--brand),var(--brand-2));color:#fff;font-weight:600}
+#map{height:320px;border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(2,132,199,.08)}
+.row{display:flex;gap:10px;align-items:center}
+label{font-size:13px;color:var(--muted);display:block;margin-bottom:6px}
+input[type=text],select,input[type=number]{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef0;background:#fbffff}
+button{padding:10px 12px;border-radius:10px;border:0;background:var(--brand);color:#fff;font-weight:600;cursor:pointer}
+.btn-light{background:#e6f8f7;color:var(--brand);border:1px solid rgba(0,194,194,.14)}
+.muted{color:var(--muted);font-size:13px}
+.service-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.service-card{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:10px;border:1px solid #eef7f7;background:linear-gradient(180deg,#fff,#fbffff)}
+.switch{display:inline-flex;align-items:center;gap:8px}
+.small{font-size:12px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:86px;background:#111;color:#fff;padding:8px 14px;border-radius:8px;opacity:0;transition:opacity .2s}
+#toast.show{opacity:1}
+@media(min-width:900px){main{max-width:980px;margin:18px auto}.tabs{display:none}}
+pre{white-space:pre-wrap;font-size:13px;background:#071827;color:#cfeef0;padding:10px;border-radius:8px;overflow:auto}
+.chip{padding:6px 10px;border-radius:999px;background:#f4fdfc;border:1px solid #dcf3f2;cursor:pointer}
+.chipbar{display:flex;flex-wrap:wrap;gap:8px}
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
 </head>
 <body>
-  <header>
-    <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px">
-      <div class="brand">
-        <div class="logoBox" aria-hidden="true" title="وسيلة">
-          <!-- شعار ونيت حوض احترافي (SVG مضمّن، ليس تكسي) -->
-          <svg width="30" height="30" viewBox="0 0 128 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-              <linearGradient id="trg" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#23c7c2"/>
-                <stop offset="1" stop-color="#7ce7e2"/>
-              </linearGradient>
-              <linearGradient id="glass" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0" stop-color="#ecfeff"/>
-                <stop offset="1" stop-color="#b9f3f1"/>
-              </linearGradient>
-            </defs>
-            <path d="M6 40h82c3 0 5-2 5-5v-7c0-1.2-.9-2.8-1.9-3.7l-10.5-9.6A6 6 0 0 0 76 12H58a4 4 0 0 0-4 4v6H24a10 10 0 0 0-10 10v8z" fill="url(#trg)"/>
-            <path d="M54 18h17c1.1 0 2.2.4 3 1.1l9.2 8.1H54V18z" fill="url(#glass)"/>
-            <rect x="6" y="42" width="116" height="5" rx="2.5" fill="#d1faf5"/>
-            <circle cx="32" cy="47" r="8" fill="#0ea5a4"/><circle cx="32" cy="47" r="3.8" fill="#ecfeff"/>
-            <circle cx="96" cy="47" r="8" fill="#0ea5a4"/><circle cx="96" cy="47" r="3.8" fill="#ecfeff"/>
-          </svg>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+      <defs><linearGradient id="g1" x1="0" x2="1"><stop offset="0" stop-color="#00C2C2"/><stop offset="1" stop-color="#8CF1EB"/></linearGradient></defs>
+      <rect rx="10" width="64" height="64" fill="url(#g1)" />
+      <g transform="translate(6,14)" fill="#fff">
+        <rect x="0" y="10" width="36" height="14" rx="2"/>
+        <rect x="26" y="0" width="10" height="16" rx="2"/>
+        <circle cx="10" cy="28" r="4" />
+        <circle cx="26" cy="28" r="4" />
+      </g>
+    </svg>
+    <div>
+      <h1>وسيلة — نموذج أولي لحسابات التطبيق</h1>
+      <div class="muted small">نسخة تجريبية — معدّة للسوق السعودي</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center">
+    <button onclick="openView('admin')">لوحة الإدارة</button>
+    <button onclick="openView('landing')" class="btn-light">الرئيسية</button>
+  </div>
+</header>
+
+<main id="app">
+  <section id="landing" class="card view">
+    <h2>أهلاً بك في وسيلة</h2>
+    <p class="muted">اختر الحساب أو ابدأ طلبًا جديدًا من حساب العميل.</p>
+    <div class="grid" style="grid-template-columns:repeat(2,1fr);margin-top:12px">
+      <div class="card"><strong>حساب العميل</strong><div class="muted small">طلب نقل/تحميل بسهولة</div><div style="margin-top:10px"><button onclick="openView('shipper')">ادخل كعميل</button></div></div>
+      <div class="card"><strong>حساب السائق</strong><div class="muted small">شاهد الطلبات القريبة واقبلها</div><div style="margin-top:10px"><button onclick="openView('driver')">ادخل كسائق</button></div></div>
+      <div class="card"><strong>حساب المالك</strong><div class="muted small">إدارة الونيتات والسائقين</div><div style="margin-top:10px"><button onclick="openView('owner')">ادخل كمالك</button></div></div>
+      <div class="card"><strong>لوحة الإدارة</strong><div class="muted small">الخدمات، التسعير، الاختبارات</div><div style="margin-top:10px"><button onclick="openView('admin')">لوحة الإدارة</button></div></div>
+    </div>
+  </section>
+
+  <section id="shipper" class="card view" style="display:none">
+    <h2>طلب جديد — عميل</h2>
+    <div class="chipbar" style="margin-bottom:10px">
+      <span class="chip" onclick="jumpTo('riyadh')">الرياض</span>
+      <span class="chip" onclick="jumpTo('jeddah')">جدة</span>
+      <span class="chip" onclick="jumpTo('hail')">حائل</span>
+      <span class="chip" onclick="jumpTo('dammam')">الدمام</span>
+    </div>
+    <div class="row" style="gap:12px">
+      <div style="flex:1">
+        <label>نقطة الاستلام</label>
+        <input id="pickup" type="text" placeholder="اختر من الخريطة أو استخدم موقعي">
+        <div class="row" style="margin-top:6px;gap:8px">
+          <button onclick="useMyLocation()">استخدم موقعي</button>
+          <button onclick="copyCoords('pickup')" class="btn-light">نسخ الإحداثيات</button>
         </div>
-        <div>
-          <div class="title">وسيلة — نموذج أولي لحسابات التطبيق</div>
-          <div class="muted" id="envNote">نسخة عرض أولية — بدون أي بيانات حقيقية</div>
-        </div>
+        <div id="pickupHint" class="muted small" style="margin-top:6px"></div>
       </div>
-      <div class="actions">
-        <button class="btn" id="installBtn" style="display:none" title="تثبيت كتطبيق">تثبيت وسيلة</button>
-        <button class="btn ghost" id="toggleMapBtn" title="إظهار / إخفاء الخريطة">إظهار/إخفاء الخريطة</button>
-        <button class="btn" onclick="openView('landing')">الواجهة الرئيسية</button>
+      <div style="flex:1">
+        <label>نقطة التسليم</label>
+        <input id="dropoff" type="text" placeholder="اختر من الخريطة أو أدخل يدويًا">
+        <div class="row" style="margin-top:6px;gap:8px">
+          <button onclick="useMyLocationDrop()">موقعي للتسليم</button>
+          <button onclick="copyCoords('dropoff')" class="btn-light">نسخ الإحداثيات</button>
+        </div>
+        <div id="dropoffHint" class="muted small" style="margin-top:6px"></div>
       </div>
     </div>
-  </header>
+    <div style="margin-top:12px" class="grid">
+      <div class="card"><label>نوع الخدمة</label><select id="serviceType"></select></div>
+      <div class="card"><label>نوع الحمولة</label><select id="cargoType"><option value="boxes">صناديق</option><option value="furniture">أثاث</option><option value="appliances">أجهزة</option><option value="building">مواد بناء</option></select></div>
+      <div class="card"><label>الوزن التقريبي (كجم)</label><input id="weight" type="number" min="1" value="20"></div>
+    </div>
+    <div style="margin-top:12px" class="row">
+      <button onclick="estimate()">حساب السعر التقريبي</button>
+      <div id="estimateOut" class="muted small" style="margin-right:12px"></div>
+      <div style="margin-left:auto"><button onclick="submitOrder()" style="background:#10b981">إرسال الطلب</button></div>
+    </div>
+    <div style="margin-top:14px"><div id="map" class="card"></div></div>
+    <div style="margin-top:12px"><h3 class="small muted">سجل الطلبات (محلي)</h3><div id="ordersList"></div></div>
+  </section>
 
-  <main class="container">
-    <!-- Landing / Accounts entry -->
-    <section id="landing" class="card">
-      <h3>واجهة وسيلة (نسخة عرض) <span class="badge" style="border-color:var(--ok)">كافة الخدمات مُفعّلة ✅</span></h3>
-      <p class="muted">اختر الحساب أو الخدمة للتجربة (تصميم جوال):</p>
-      <div class="accounts" style="margin-top:10px">
-        <button class="btn" onclick="openView('shipper')">حساب العملاء (طالِب الخدمة)</button>
-        <button class="btn" onclick="openView('owner')">حساب أصحاب الونيتات (تسجيل المركبة)</button>
-        <button class="btn" onclick="openView('driver')">حساب السائقين</button>
-        <button class="btn" onclick="openView('admin')">لوحة الإدارة</button>
-        <button class="btn" onclick="openView('ownersList')">قائمة الملاك</button>
-        <button class="btn" onclick="openView('services')">الخدمات</button>
+  <section id="driver" class="card view" style="display:none">
+    <h2>حساب السائق</h2><p class="muted small">قائمة الطلبات القريبة — اضغط لقبول</p><div id="driverOrders"></div>
+  </section>
+
+  <section id="owner" class="card view" style="display:none">
+    <h2>حساب المالك</h2>
+    <p class="muted small">الملاك/المركبات</p>
+    <div class="row" style="gap:8px;margin-bottom:8px">
+      <input id="ownerName" type="text" placeholder="اسم المالك">
+      <input id="ownerVehicles" type="number" min="0" value="1" style="max-width:120px">
+      <button onclick="addOwner()">إضافة</button>
+    </div>
+    <div id="ownersList"></div>
+  </section>
+
+  <section id="admin" class="card view" style="display:none">
+    <h2>لوحة الإدارة</h2>
+    <div class="row" style="gap:12px">
+      <div style="flex:1"><label>بحث خدمات</label><input id="serviceSearch" type="text" placeholder="بحث..."></div>
+      <div style="width:220px"><label>تصنيف</label><select id="serviceFilter"><option value="">الكل</option><option value="home">منزلي</option><option value="equipment">معدات</option><option value="log">لوجستي</option></select></div>
+    </div>
+    <div style="margin-top:12px" class="service-grid card" id="servicesGrid"></div>
+    <div style="margin-top:12px" class="card">
+      <h3>تسعير (قابل للتعديل)</h3>
+      <div class="row" style="gap:12px">
+        <div style="flex:1"><label>ريال/كم</label><input id="kmRate" type="number" value="2.2" step="0.1"></div>
+        <div style="flex:1"><label>الوزن المجاني (كجم)</label><input id="freeKg" type="number" value="50"></div>
+        <div style="flex:1"><label>سعر/كجم إضافي</label><input id="perKg" type="number" value="0.6" step="0.1"></div>
       </div>
-    </section>
-
-    <!-- Shipper workspace -->
-    <section id="shipper" class="card" hidden>
-      <div class="tabs">
-        <button class="tab active" data-target="shipperBench">طلب جديد</button>
-        <button class="tab" data-target="shipper-orders">طلباتي</button>
-      </div>
-
-      <div class="workbench" id="shipperBench">
-        <div class="mapWrap">
-          <div id="leafletMap" class="leaflet-map" role="region" aria-label="خريطة وسيلة"></div>
-          <div class="mapCtrls" aria-hidden="false">
-            <button type="button" class="mapBtn" id="fitRouteBtn">ملاءمة المسار</button>
-            <button type="button" class="mapBtn" id="recenterBtn">إرجاع الخريطة</button>
-          </div>
-        </div>
-        <div class="panel card">
-          <h3>طلب توصيل <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
-          <div class="field">
-            <label>نقطة الاستلام</label>
-            <div class="inline-actions">
-              <input id="pickup" placeholder="المدينة، الحي، الشارع" style="flex:1" />
-              <button type="button" class="pill" id="pickPickup">تحديد من الخريطة</button>
-              <button type="button" class="pill primary" id="useGPS" title="استخدم موقعي">استخدم موقعي</button>
-              <button type="button" class="pill" id="copyPickup" title="نسخ الإحداثيات">نسخ إحداثيات</button>
-              <span class="muted" id="pickupHint"></span>
-            </div>
-          </div>
-          </div>
-          <div class="field">
-            <label>نقطة التسليم</label>
-            <div class="inline-actions">
-              <input id="dropoff" placeholder="المدينة، الحي، الشارع" style="flex:1" />
-              <button type="button" class="pill" id="pickDropoff">تحديد من الخريطة</button>
-              <button type="button" class="pill primary" id="useGPSDrop" title="موقعي للتسليم">موقعي للتسليم</button>
-              <button type="button" class="pill" id="copyDropoff" title="نسخ الإحداثيات">نسخ إحداثيات</button>
-              <span class="muted" id="dropoffHint"></span>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>الخدمة</label>
-              <select id="serviceType"></select>
-            </div>
-            <div class="field">
-              <label>حجم/نوع المنقول</label>
-              <select id="cargoSize">
-                <option value="small">صغير (صناديق خفيفة)</option>
-                <option value="medium">متوسط (أثاث خفيف)</option>
-                <option value="big">كبير (أثاث ثقيل/معدات)</option>
-              </select>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>نوع الحمولة</label>
-              <select id="cargoType">
-                <option value="boxes">صناديق/أغراض عامة</option>
-                <option value="furniture">أثاث</option>
-                <option value="appliances">أجهزة كهربائية</option>
-                <option value="building">مواد بناء</option>
-                <option value="equipment">معدات</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>وزن تقريبي (كجم)</label>
-              <input type="number" id="weightKg" min="0" step="1" placeholder="اختياري"/>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>موعد التنفيذ</label>
-              <input type="datetime-local" id="when" />
-            </div>
-            <div class="field">
-              <label>ملاحظات إضافية</label>
-              <input id="notes" placeholder="وصف مختصر" />
-            </div>
-          </div>
-          <div class="actions">
-            <button class="btn primary" onclick="estimate()">تقدير السعر</button>
-            <button class="btn" onclick="submitOrder()">إرسال الطلب</button>
-            <span class="muted" id="estimateOut"></span>
-          </div>
-        </div>
-      </div>
-
-      <div id="shipper-orders" hidden>
-        <div class="card">
-          <h3>طلباتي</h3>
-          <div id="ordersList" class="muted">لا توجد طلبات بعد.</div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Owners (pickup truck owners) registration -->
-    <section id="owner" class="card" hidden>
-      <h3>تسجيل أصحاب الونيتات <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
-      <p class="muted">يرجى تعبئة بيانات المركبة والسائق بدقة. هذه نسخة تجريبية ولا يتم رفع ملفات فعلية.</p>
-      <div class="row">
-        <div class="card">
-          <h4>بيانات المركبة</h4>
-          <div class="field">
-            <label>نوع المركبة</label>
-            <select id="vehType">
-              <option>وانيت حوض صغير</option>
-              <option>وانيت حوض كبير</option>
-              <option>دينا</option>
-              <option>قفص/مغطى</option>
-            </select>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>رقم اللوحة</label>
-              <input id="plate" placeholder="مثال: س ع ل 1234"/>
-            </div>
-            <div class="field">
-              <label>موديل (سنة الصنع)</label>
-              <input id="modelYear" type="number" min="1990" max="2026" placeholder="2019"/>
-            </div>
-          </div>
-          <div class="row">
-            <div class="field">
-              <label>المنطقة</label>
-              <select id="region">
-                <option>منطقة حائل</option><option>منطقة الرياض</option><option>منطقة مكة المكرمة</option>
-                <option>المنطقة الشرقية</option><option>المدينة المنورة</option><option>القصيم</option>
-                <option>تبوك</option><option>عسير</option><option>جازان</option>
-                <option>نجران</option><option>الباحة</option><option>الجوف</option><option>الحدود الشمالية</option>
-              </select>
-            </div>
-            <div class="field">
-              <label>الصورة (واجهة المركبة)</label>
-              <input type="file" id="vehFront" accept="image/*" />
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <h4>بيانات السائق</h4>
-          <div class="row">
-            <div class="field"><label>الاسم الثلاثي</label><input id="driverName" placeholder="الاسم الكامل"/></div>
-            <div class="field"><label>رقم الهوية</label><input id="nid" placeholder="10 أرقام" maxlength="10"/></div>
-          </div>
-          <div class="row">
-            <div class="field"><label>رقم رخصة القيادة</label><input id="licenseNo" placeholder="رقم الرخصة"/></div>
-            <div class="field"><label>تاريخ انتهاء الرخصة</label><input id="licenseExp" type="date"/></div>
-          </div>
-          <div class="row">
-            <div class="field"><label>نسخة الرخصة (صورة)</label><input type="file" id="licenseImg" accept="image/*"/></div>
-            <div class="field"><label>IBAN للحوالات</label><input id="iban" placeholder="SA.."/></div>
-          </div>
-          <div class="actions">
-            <button class="btn primary" onclick="saveOwner()">حفظ التسجيل</button>
-            <span class="muted" id="ownerSaved"></span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Owners list (enabled overview) -->
-    <section id="ownersList" class="card" hidden>
-      <h3>قائمة الملاك <span class="badge" style="border-color:var(--ok);">مُفعلة ✅</span></h3>
-      <div id="ownersTable" class="muted">لا يوجد مُلاك بعد.</div>
-    </section>
-
-    <!-- Services (all enabled) -->
-    <section id="services" class="card" hidden>
-      <h3>الخدمات <span class="badge" style="border-color:var(--ok);">مُفعلة بالكامل ✅</span></h3>
-      <div id="servicesGrid" class="accounts"></div>
-    </section>
-
-    <!-- Drivers account -->
-    <section id="driver" class="card" hidden>
-      <h3>حساب السائق <span class="badge" style="border-color:var(--ok);">مُفعل ✅</span></h3>
-      <div class="row">
-        <div class="card">
-          <h4>الملف الشخصي</h4>
-          <div class="field"><label>الاسم</label><input id="dName" placeholder="اسم السائق"/></div>
-          <div class="row">
-            <div class="field"><label>الهاتف</label><input id="dPhone" placeholder="05xxxxxxxx"/></div>
-            <div class="field"><label>المدينة</label><input id="dCity" placeholder="مثال: حائل"/></div>
-          </div>
-          <div class="row">
-            <div class="field"><label>الرخصة (صورة)</label><input type="file" id="dLicenseFile" accept="image/*"/></div>
-            <div class="field"><label>إقامة/هوية (صورة)</label><input type="file" id="dIdFile" accept="image/*"/></div>
-          </div>
-          <div class="actions">
-            <button class="btn primary" onclick="saveDriver()">حفظ</button>
-            <label class="tab" style="display:inline-flex;align-items:center;gap:6px">
-              <input type="checkbox" id="availableToggle" onchange="toggleAvail()"/>
-              متاح لاستلام الطلبات
-            </label>
-          </div>
-          <div class="muted" id="driverSaved"></div>
-        </div>
-        <div class="card">
-          <h4>طلبات قريبة</h4>
-          <div class="muted">تظهر هنا الطلبات ضمن نطاق 10 كم (تجريبي).</div>
-          <ul id="nearbyList"></ul>
-          <div class="actions"><span class="muted">اختر طلبًا ثم اضغط قبول</span></div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Admin -->
-    <section id="admin" class="card" hidden>
-      <h3>لوحة إدارة التطبيق <span class="badge" style="border-color:var(--ok);">مُفعلة ✅</span></h3>
-      <div class="stats">
-        <div class="stat"><div class="muted">عدد العملاء</div><b id="stUsers">0</b></div>
-        <div class="stat"><div class="muted">طلبات اليوم</div><b id="stOrders">0</b></div>
-        <div class="stat"><div class="muted">سائقون متاحون</div><b id="stDrivers">0</b></div>
-        <div class="stat"><div class="muted">مركبات مسجلة</div><b id="stVehicles">0</b></div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>إدارة المناطق والتسعير</h4>
-        <div class="row">
-          <div class="field"><label>تعرفة الكيلومتر (ريال)</label><input id="kmRate" type="number" step="0.5" value="3"/></div>
-          <div class="field"><label>رسوم فتح الطلب (ريال)</label><input id="baseFee" type="number" step="1" value="20"/></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>سعر الكيلو للوزن الإضافي (ريال/كجم)</label><input id="perKg" type="number" step="0.1" value="0.5"/></div>
-          <div class="field"><label>وزن مجاني مشمول (كجم)</label><input id="freeKg" type="number" step="1" value="50"/></div>
-        </div>
-        <div class="row">
-          <div class="field"><label>مضاعف الحجم (صغير/متوسط/كبير)</label>
-            <div class="inline-actions" style="gap:6px">
-              <input id="mSmall" type="number" step="0.05" value="1" style="width:33%"/>
-              <input id="mMedium" type="number" step="0.05" value="1.3" style="width:33%"/>
-              <input id="mBig" type="number" step="0.05" value="1.8" style="width:33%"/>
-            </div>
-          </div>
-          <div class="field"><label>مضاعف نوع الحمولة (صناديق/أثاث/أجهزة/مواد بناء/معدات)</label>
-            <div class="inline-actions" style="gap:6px;flex-wrap:wrap">
-              <input id="tBoxes" type="number" step="0.05" value="1" style="width:18%"/>
-              <input id="tFurniture" type="number" step="0.05" value="1.15" style="width:18%"/>
-              <input id="tAppliances" type="number" step="0.05" value="1.2" style="width:18%"/>
-              <input id="tBuilding" type="number" step="0.05" value="1.3" style="width:18%"/>
-              <input id="tEquipment" type="number" step="0.05" value="1.35" style="width:18%"/>
-            </div>
-          </div>
-        </div>
-        <div class="row">
-          <div class="field"><label>فترة التتبّع الحي (ثوانٍ)</label><input id="pollSec" type="number" min="4" step="1" value="8"/></div>
-        </div>
-        <div class="actions">
-          <button class="btn primary" onclick="savePricing()">حفظ التسعير</button>
-          <span class="muted" id="pricingSaved"></span>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>الخدمات (تفعيل/تعطيل)</h4>
-        <div class="toolbar" style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 12px">
-          <input id="svcSearch" placeholder="ابحث باسم الخدمة..." style="flex:1;min-width:200px;padding:12px;border-radius:12px;border:1px solid #dbe4ea"/>
-          <div class="chips" id="svcCats" style="display:flex;gap:6px;flex-wrap:wrap">
-            <button class="pill" data-cat="الكل">الكل</button>
-            <button class="pill" data-cat="منزلي">منزلي</button>
-            <button class="pill" data-cat="معدات">معدات</button>
-            <button class="pill" data-cat="تجاري">تجاري</button>
-            <button class="pill" data-cat="لوجستي">لوجستي</button>
-            <button class="pill" data-cat="سريع">سريع</button>
-          </div>
-        </div>
-        <div id="adminServices" class="service-grid"></div>
-        <div class="muted" style="margin-top:6px">💡 يمكنك إعادة الترتيب بالسحب والإفلات. يتم الحفظ تلقائيًا.</div>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>سجل الطلبات (تجريبي)</h4>
-        <div id="adminOrders" class="muted">لا توجد بيانات.</div>
-        <template id="orderRowTmpl">
-          <div class="card" data-id="">
-            <div><b class="from"></b> → <b class="to"></b> <span class="badge status"></span></div>
-            <div class="muted time"></div>
-            <div class="actions">
-              <button class="btn" data-action="complete">إكمال</button>
-              <button class="btn ghost" data-action="cancel">إلغاء</button>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <div class="card" style="margin-top:12px">
-        <h4>اختبارات تلقائية</h4>
-        <p class="muted">للتحقق من وظائف الملاحة والتبويبات وتدفق حالة الطلب.</p>
-        <div id="testResults"></div>
-        <div class="actions"><button class="btn" id="runTestsBtn">تشغيل الاختبارات</button></div>
-      </div>
-    </section>
-
-  </main>
-
-  <div class="toast" id="toast"></div>
-
-  <!-- شريط تنقّل سفلي (أسلوب تطبيق جوال) -->
-  <nav class="appTabs" role="navigation" aria-label="تبويب التطبيق">
-    <button onclick="openView('landing')" id="tabHome"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M9 21V12h6v9"/></svg><span>الرئيسية</span></button>
-    <button onclick="openView('shipper')" id="tabShip"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="13" height="13" rx="2"/><path d="M16 13h5l-3-5h-2z"/></svg><span>العميل</span></button>
-    <button onclick="openView('driver')" id="tabDrv"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h18"/><path d="M5 16h14"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/></svg><span>السائق</span></button>
-    <button onclick="openView('owner')" id="tabOwn"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="10" rx="3"/><path d="M7 7V5h10v2"/></svg><span>المالك</span></button>
-    <button onclick="openView('admin')" id="tabAdm"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9c0 .7.4 1.3 1 1.6.3.2.6.4 1 .4a2 2 0 1 1 0 4c-.4 0-.7.2-1 .4-.6.3-1 .9-1 1.6z"/></svg><span>الإدارة</span></button>
-  </nav>
-
-  <footer class="container">
-    <div>© وسيلة — نموذج أولي للاستخدام الداخلي.</div>
-  </footer>
-
-  <script>
-    // ---- Simple state (global) ----
-    const S = {
-      orders: JSON.parse(localStorage.getItem('orders')||'[]'),
-      owners: JSON.parse(localStorage.getItem('owners')||'[]'),
-      drivers: JSON.parse(localStorage.getItem('drivers')||'[]'),
-      pricing: JSON.parse(localStorage.getItem('pricing')||'{"kmRate":3,"baseFee":20,"perKg":0.5,"freeKg":50,"pollSec":8,"multipliers":{"size":{"small":1,"medium":1.3,"big":1.8},"type":{"boxes":1,"furniture":1.15,"appliances":1.2,"building":1.3,"equipment":1.35}}}'),
-      services: JSON.parse(localStorage.getItem('services')||JSON.stringify([
-        {key:'house_move', name:'نقل أثاث منزلي', cat:'منزلي', enabled:true},
-        {key:'appliance',  name:'أجهزة كهربائية', cat:'منزلي', enabled:true},
-        {key:'office',     name:'نقل مكتبي', cat:'تجاري', enabled:true},
-        {key:'flatbed',    name:'سطحة/معدات', cat:'معدات', enabled:true},
-        {key:'building',   name:'مواد بناء وحفر', cat:'معدات', enabled:true},
-        {key:'landscape',  name:'تنسيق حدائق ونخيل', cat:'منزلي', enabled:true},
-        {key:'event',      name:'تجهيز فعاليات ومعارض', cat:'تجاري', enabled:true},
-        {key:'waste',      name:'مخلفات خفيفة ونقل أنقاض', cat:'معدات', enabled:true},
-        {key:'store',      name:'توصيل من متجر/مستودع', cat:'تجاري', enabled:true},
-        {key:'warehouse',  name:'مناولة بين المستودعات', cat:'لوجستي', enabled:true},
-        {key:'long',       name:'نقل بين المدن', cat:'لوجستي', enabled:true},
-        {key:'express',    name:'سريع داخل المدينة', cat:'سريع', enabled:true}
-      ]))
-    };
-    // حالة الطلب: new, assigned, in_progress, completed, cancelled
-
-    // ---- Helpers ----
-    function val(id){return document.getElementById(id)?.value?.trim()||''}
-    function byId(id){return document.getElementById(id)}
-    function esc(s){return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m]))}
-    function mapStatus(s){ return s==='new'?'جديد': s==='assigned'?'مُسند': s==='in_progress'?'قيد التنفيذ': s==='completed'?'مكتمل': s==='cancelled'?'ملغي':'غير معروف'; }
-    function persist(){ localStorage.setItem('orders', JSON.stringify(S.orders)); localStorage.setItem('owners', JSON.stringify(S.owners)); localStorage.setItem('drivers', JSON.stringify(S.drivers)); localStorage.setItem('pricing', JSON.stringify(S.pricing)); localStorage.setItem('services', JSON.stringify(S.services)); }
-
-    // ---- Define openView EARLY ----
-    window.openView = function openView(id){
-      document.querySelectorAll('main > section').forEach(sec=>sec.hidden = true);
-      const el = document.getElementById(id) || document.getElementById('landing');
-      el.hidden = false;
-      document.querySelectorAll('.appTabs button').forEach(b=>b.classList.remove('active'));
-      const mapIdToBtn = {landing:'tabHome', shipper:'tabShip', driver:'tabDrv', owner:'tabOwn', admin:'tabAdm'};
-      const btnId = mapIdToBtn[id]; if(btnId) document.getElementById(btnId).classList.add('active');
-      if(id==='shipper' && typeof L!=='undefined' && window.map){
-        setTimeout(()=>{ try{ window.map.invalidateSize(); if(window.mapState?.pickup && window.mapState?.dropoff){ drawRouteIfReady(); } }catch(_){} },0);
-      }
-      updateUI();
-    }
-
-    // ---- DOM bootstrap ----
-    document.addEventListener('DOMContentLoaded', ()=>{
-      // tabs behavior
-      document.querySelectorAll('.tabs .tab').forEach(tab=>{ tab.addEventListener('click', ()=>{ const wrap = tab.closest('section'); wrap.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active')); tab.classList.add('active'); const target = tab.dataset.target; if(target){ wrap.querySelectorAll('#shipperBench,#shipper-orders').forEach(v=>v.hidden=true); const tgt = wrap.querySelector('#'+target); if(tgt){ tgt.closest('div').hidden=false; } } }); });
-
-      // map ctrl buttons
-      const fitBtn = document.getElementById('fitRouteBtn'); const recBtn = document.getElementById('recenterBtn'); if(fitBtn) fitBtn.addEventListener('click', fitToMarkersOrRoute); if(recBtn) recBtn.addEventListener('click', recenterMap);
-
-      // map toggle
-      const tgl = document.getElementById('toggleMapBtn'); if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
-
-      // boot
-      history.replaceState(null, '', location.pathname); openView('landing'); initLeaflet(); updateUI();
-
-      // listeners
-      const q = document.getElementById('svcSearch'); if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
-      const chips = document.getElementById('svcCats'); if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
-      const testBtn = document.getElementById('runTestsBtn'); if(testBtn){ testBtn.addEventListener('click', runTests); }
-
-      // GPS buttons
-      const gps = document.getElementById('useGPS'); if(gps){ gps.addEventListener('click', useMyLocation); }
-      const gpsD = document.getElementById('useGPSDrop'); if(gpsD){ gpsD.addEventListener('click', useMyLocationDrop); }
-
-      // Copy coord buttons
-      const cP = document.getElementById('copyPickup'); if(cP){ cP.addEventListener('click', ()=>copyCoords('pickup')); }
-      const cD = document.getElementById('copyDropoff'); if(cD){ cD.addEventListener('click', ()=>copyCoords('dropoff')); }
-
-      // Live polling using configured interval
-      let lastOrdersJSON = JSON.stringify(S.orders);
-      const pollMs = Math.max(4000, (S.pricing.pollSec||8)*1000);
-      setInterval(()=>{
-        try{
-          const nowOrders = JSON.parse(localStorage.getItem('orders')||'[]');
-          const js = JSON.stringify(nowOrders);
-          if(js!==lastOrdersJSON){ S.orders = nowOrders; lastOrdersJSON = js; updateUI(); }
-        }catch(_){/* ignore */}
-      }, pollMs);
-    });
-
-      const q = document.getElementById('svcSearch'); if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
-      const chips = document.getElementById('svcCats'); if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
-
-      const testBtn = document.getElementById('runTestsBtn'); if(testBtn){ testBtn.addEventListener('click', runTests); }
-    });
-          wrap.querySelectorAll('.tabs .tab').forEach(t=>t.classList.remove('active'));
-          tab.classList.add('active');
-          const target = tab.dataset.target;
-          if(target){
-            wrap.querySelectorAll('#shipperBench,#shipper-orders').forEach(v=>v.hidden=true);
-            const tgt = wrap.querySelector('#'+target);
-            if(tgt){ tgt.closest('div').hidden=false; }
-          }
-        });
-      });
-
-      // map ctrl buttons
-      const fitBtn = document.getElementById('fitRouteBtn');
-      const recBtn = document.getElementById('recenterBtn');
-      if(fitBtn) fitBtn.addEventListener('click', fitToMarkersOrRoute);
-      if(recBtn) recBtn.addEventListener('click', recenterMap);
-
-      // map toggle
-      const tgl = document.getElementById('toggleMapBtn');
-      if(tgl){ tgl.addEventListener('click',()=>{ document.body.classList.toggle('mapCollapsed'); }); }
-
-      // boot
-      history.replaceState(null, '', location.pathname);
-      openView('landing');
-      initLeaflet();
-      updateUI();
-
-      // services toolbar listeners
-      const q = document.getElementById('svcSearch');
-      if(q){ q.addEventListener('input', e=>{ window.__svcQuery = e.target.value.trim(); renderAdminServices(); }); }
-      const chips = document.getElementById('svcCats');
-      if(chips){ chips.addEventListener('click', (e)=>{ const b=e.target.closest('button[data-cat]'); if(!b) return; window.__svcCat=b.dataset.cat; [...chips.querySelectorAll('button')].forEach(x=>x.classList.remove('active')); b.classList.add('active'); renderAdminServices(); }); }
-
-      const testBtn = document.getElementById('runTestsBtn');
-      if(testBtn){ testBtn.addEventListener('click', runTests); }
-    });
-
-    // ---- Pricing & Orders ----
-    function kmBetween(){
-      if(window.mapState?.pickup && window.mapState?.dropoff){
-        const {pickup, dropoff} = window.mapState;
-        const R = 6371; const toRad = d => d*Math.PI/180;
-        const dLat = toRad(dropoff.lat - pickup.lat);
-        const dLon = toRad(dropoff.lng - pickup.lng);
-        const a = Math.sin(dLat/2)**2 + Math.cos(toRad(pickup.lat))*Math.cos(toRad(dropoff.lat))*Math.sin(dLon/2)**2;
-        const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return Math.max(1, Math.round(R*c));
-      }
-      return 2 + Math.round(Math.random()*12);
-    }
-
-    function estimate(){
-      const km = (typeof lastRouteKm==='number' && lastRouteKm>0) ? Math.round(lastRouteKm) : kmBetween();
-      const r = S.pricing.kmRate || 3; const base = S.pricing.baseFee || 20;
-      const size = byId('cargoSize')?.value||'small';
-      const type = byId('cargoType')?.value||'boxes';
-      const weight = +byId('weightKg')?.value||0;
-      const ms = S.pricing.multipliers?.size || {small:1,medium:1.3,big:1.8};
-      const mt = S.pricing.multipliers?.type || {boxes:1,furniture:1.15,appliances:1.2,building:1.3,equipment:1.35};
-      const multSize = ms[size] ?? 1;
-      const multType = mt[type] ?? 1;
-      const extraW = Math.max(0, weight - (S.pricing.freeKg||50));
-      const weightFee = extraW * (S.pricing.perKg||0.5);
-      const price = Math.round((base + km*r)*multSize*multType + weightFee);
-      const eta = (typeof lastRouteETAmin==='number')? ` — زمن تقديري ~ ${Math.max(1,Math.round(lastRouteETAmin))} دقيقة` : '';
-      byId('estimateOut').textContent = `تقدير: ~ ${price} ريال لمسافة ${km} كم${eta}`;
-      return price;
-    }
-
-    function submitOrder(){
-      const svcSel = document.getElementById('serviceType');
-      const service = svcSel ? (svcSel.value || '') : '';
-      const data = {
-        pickup: val('pickup'), dropoff: val('dropoff'), when: val('when'), notes: val('notes'),
-        size: val('cargoSize'), cargoType: val('cargoType'), weightKg: +(val('weightKg')||0), service,
-        price: estimate(), id: Date.now(), status: 'new', driverId: null
-      };
-      if(!data.pickup||!data.dropoff){alert('يرجى إدخال الاستلام والتسليم');return}
-      S.orders.unshift(data); persist();
-      document.getElementById('estimateOut').textContent = 'تم إرسال الطلب.';
-      updateUI();
-      const tab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]'); if(tab) tab.click();
-    }
-
-    function saveOwner(){
-      const rec = {
-        vehType: val('vehType'), plate: val('plate'), modelYear: val('modelYear'), region: val('region'),
-        driverName: val('driverName'), nid: val('nid'), licenseNo: val('licenseNo'), licenseExp: val('licenseExp'), iban: val('iban'),
-        id: Date.now()
-      };
-      S.owners.unshift(rec); persist();
-      byId('ownerSaved').textContent = 'تم الحفظ.'; updateUI();
-    }
-
-    function saveDriver(){
-      const d = {name: val('dName'), phone: val('dPhone'), city: val('dCity'), available: byId('availableToggle').checked, id: Date.now()};
-      S.drivers.unshift(d); persist();
-      byId('driverSaved').textContent = 'تم الحفظ.'; updateUI();
-    }
-
-    function toggleAvail(){updateUI()}
-
-    function savePricing(){
-      S.pricing = {
-        kmRate: +val('kmRate')||3,
-        baseFee: +val('baseFee')||20,
-        perKg: +val('perKg')||0.5,
-        freeKg: +val('freeKg')||50,
-        pollSec: +val('pollSec')||8,
-        multipliers: {
-          size: {
-            small: +val('mSmall')||1,
-            medium: +val('mMedium')||1.3,
-            big: +val('mBig')||1.8
-          },
-          type: {
-            boxes: +val('tBoxes')||1,
-            furniture: +val('tFurniture')||1.15,
-            appliances: +val('tAppliances')||1.2,
-            building: +val('tBuilding')||1.3,
-            equipment: +val('tEquipment')||1.35
-          }
-        }
-      };
-      persist(); byId('pricingSaved').textContent = 'تم تحديث التسعير.';
-    }; persist(); byId('pricingSaved').textContent = 'تم تحديث التسعير.'; }
-
-    function driverAccept(orderId){
-      const d = S.drivers[0];
-      const o = S.orders.find(x=>x.id===orderId);
-      if(!o) return;
-      o.driverId = d? d.id : null; o.status = 'in_progress'; persist(); updateUI();
-      try{ localStorage.setItem('orders', JSON.stringify(S.orders)); }catch(_){}
-      alert('تم قبول الطلب والبدء في تنفيذه');
-    }
-
-    function labelOf(key){ const f = S.services.find(s=>s.key===key); return f?f.name:key; }
-
-    // ---- UI rendering ----
-    function updateUI(){
-      // services in shipper form
-      const svcSel = byId('serviceType'); if(svcSel){ const enabled = S.services.filter(s=>s.enabled); svcSel.innerHTML = enabled.map(s=>`<option value="${s.key}">${s.name}</option>`).join(''); if(!enabled.length){ svcSel.innerHTML = '<option disabled>لا توجد خدمات مفعلة</option>'; } }
-
-      // pricing inputs reflect state
-      const kmRate=byId('kmRate'), baseFee=byId('baseFee'), perKg=byId('perKg'), freeKg=byId('freeKg');
-      if(kmRate) kmRate.value = S.pricing.kmRate||3;
-      if(baseFee) baseFee.value = S.pricing.baseFee||20;
-      if(perKg) perKg.value = S.pricing.perKg||0.5;
-      if(freeKg) freeKg.value = S.pricing.freeKg||50;
-
-      // services grid
-      const svcGrid = byId('servicesGrid'); if(svcGrid){ svcGrid.innerHTML = S.services.map(s=>`<div class=\"card\"><div style=\"display:flex;align-items:center;justify-content:space-between;gap:8px\"><b>${s.name}</b><span class=\"badge\" style=\"border-color:${s.enabled?'#a7f3d0':'#fecaca'}\">${s.enabled?'مُفعّل':'معطّل'}</span></div></div>`).join(''); }
-
-      // Admin services
-      const adminSvc = byId('adminServices'); if(adminSvc){ renderAdminServices(); }
-
-      // Admin stats
-      byId('stUsers').textContent = Math.max(1, Math.ceil(S.orders.length/2));
-      byId('stOrders').textContent = S.orders.slice(0,10).length;
-      byId('stDrivers').textContent = S.drivers.filter(d=>d.available).length;
-      byId('stVehicles').textContent = S.owners.length;
-
-      // Admin orders table
-      const adminOrders = byId('adminOrders');
-      if(adminOrders){
-        if(!S.orders.length) adminOrders.textContent = 'لا توجد بيانات.'; else{
-          adminOrders.innerHTML = '';
-          S.orders.forEach(o=>{
-            const row = document.getElementById('orderRowTmpl').content.cloneNode(true);
-            const root = row.querySelector('.card');
-            root.dataset.id = o.id;
-            row.querySelector('.from').textContent = o.pickup;
-            row.querySelector('.to').textContent = o.dropoff;
-            row.querySelector('.time').textContent = new Date(o.id).toLocaleString('ar-SA');
-            const stEl = row.querySelector('.status'); stEl.textContent = mapStatus(o.status);
-            if(o.status==='completed'||o.status==='cancelled'){ row.querySelector('[data-action="complete"]').disabled = true; }
-            row.querySelector('[data-action="complete"]').addEventListener('click',()=>{ o.status='completed'; persist(); updateUI();});
-            row.querySelector('[data-action="cancel"]').addEventListener('click',()=>{ o.status='cancelled'; persist(); updateUI();});
-            adminOrders.appendChild(row);
-          });
-        }
-      }
-
-      // Nearby for driver (last 5 new)
-      const near = byId('nearbyList');
-      if(near){
-        const avail = S.orders.filter(o=>o.status==='new').slice(0,5);
-        if(!avail.length) near.innerHTML = '<li class="muted">لا توجد طلبات قريبة الآن.</li>';
-        else{
-          near.innerHTML = avail.map(o=>`<li class=\"card\" style=\"margin:6px 0;padding:10px\"><b>${esc(o.pickup)}</b> → <b>${esc(o.dropoff)}</b>${o.service?` — <span class=\\\"badge\\\">${esc(labelOf(o.service))}</span>`:''}<br><span class=\"muted\">~${o.price} ر.س</span><div class=\"actions\"><button class=\"btn primary\" onclick=\"driverAccept(${o.id})\">قبول</button></div></li>`).join('');
-        }
-      }
-
-      // Owners table
-      const ownersHost = byId('ownersTable');
-      if(ownersHost){
-        if(!S.owners.length) ownersHost.textContent = 'لا يوجد مُلاك بعد.'; else{
-          ownersHost.innerHTML = S.owners.map(o=>`<div class=\"card\" style=\"margin:6px 0\"><b>${esc(o.driverName)}</b> — ${esc(o.vehType)} | ${esc(o.region)} <span class=\"muted\">${esc(o.plate)}</span></div>`).join('');
-        }
-      }
-    }
-
-    // ===== Admin services rendering + filters + drag&drop =====
-    window.__svcQuery = '';
-    window.__svcCat = 'الكل';
-
-    // ensure categories exist for older storage
-    S.services = S.services.map(s=>({...s, cat: s.cat || mapCategory(s.key)}));
-
-    function mapCategory(key){
-      if(['house_move','appliance','landscape'].includes(key)) return 'منزلي';
-      if(['office','event','store'].includes(key)) return 'تجاري';
-      if(['flatbed','building','waste'].includes(key)) return 'معدات';
-      if(['warehouse','long'].includes(key)) return 'لوجستي';
-      if(['express'].includes(key)) return 'سريع';
-      return 'أخرى';
-    }
-
-    function filteredServices(){
-      const q = (window.__svcQuery||'').toLowerCase();
-      const cat = window.__svcCat||'الكل';
-      return S.services.filter(s=>{
-        const matchesQ = !q || s.name.toLowerCase().includes(q) || s.key.toLowerCase().includes(q);
-        const matchesC = cat==='الكل' || s.cat===cat;
-        return matchesQ && matchesC;
-      });
-    }
-
-    function renderAdminServices(){
-      const host = document.getElementById('adminServices'); if(!host) return;
-      const groups = {};
-      filteredServices().forEach((s,idx)=>{ const g=s.cat||'أخرى'; (groups[g]=groups[g]||[]).push({s, idx}); });
-      host.innerHTML = Object.keys(groups).sort((a,b)=>a.localeCompare(b,'ar')).map(g=>{
-        const items = groups[g].map(({s,idx})=>serviceCardHTML(s, idx)).join('');
-        return `<div class=\"svc-group\"><h5>${g}</h5>${items}</div>`;
-      }).join('');
-      bindServiceCardDnD(host);
-    }
-
-    function serviceCardHTML(s, idx){
-      const letter = s.name.trim().charAt(0);
-      const id = `svc_${idx}`;
-      return `<div class=\"service-card\" draggable=\"true\" data-index=\"${idx}\" aria-grabbed=\"false\">\n        <div class=\"ico\" aria-hidden=\"true\">${letter}</div>\n        <div class=\"meta\"><b title=\"${s.name}\">${s.name}</b><div class=\"muted\">${s.key}</div></div>\n        <label class=\"switch\" for=\"${id}\">\n          <input id=\"${id}\" type=\"checkbox\" ${s.enabled?'checked':''} onchange=\"toggleService(${idx}, this.checked)\" aria-label=\"تفعيل ${s.name}\" />\n        </label>\n        <span class=\"badge ${s.enabled?'on':'off'}\">${s.enabled?'مُفعّل':'معطّل'}</span>\n      </div>`
-    }
-
-    function bindServiceCardDnD(root){
-      const cards=[...root.querySelectorAll('.service-card')];
-      let dragIndex=null;
-      cards.forEach(card=>{
-        card.addEventListener('dragstart', (e)=>{ dragIndex=+card.dataset.index; card.style.opacity=.6; e.dataTransfer.effectAllowed='move'; });
-        card.addEventListener('dragend', ()=>{ card.style.opacity=''; });
-        card.addEventListener('dragover', (e)=>{ e.preventDefault(); e.dataTransfer.dropEffect='move'; });
-        card.addEventListener('drop', (e)=>{
-          e.preventDefault();
-          const toIndex = +card.dataset.index;
-          if(Number.isFinite(dragIndex) && Number.isFinite(toIndex) && dragIndex!==toIndex){
-            const [moved] = S.services.splice(dragIndex,1);
-            S.services.splice(toIndex,0,moved);
-            persist();
-            renderAdminServices();
-          }
-        });
-      });
-    }
-
-    function toggleService(i, val){ S.services[i].enabled = !!val; persist(); updateUI(); }
-
-    // ---- Minimal front-end test cases (unchanged logic, cleaned) ----
-    function runTests(){
-      const results = [];
-      const assert = (name, cond) => results.push({اختبار:name, النتيجة: cond? 'PASS':'FAIL'});
-      try{
-        assert('تعريف openView', typeof window.openView === 'function');
-        const ids = ['landing','shipper','owner','driver','admin','ownersList'];
-        ids.forEach(id=>{ window.openView(id); const sec = document.getElementById(id); assert(`إظهار القسم ${id}`, sec && sec.hidden===false); });
-        location.hash = '#owner'; window.dispatchEvent(new HashChangeEvent('hashchange')); assert('المسار بالهاش يعمل', !document.getElementById('owner').hidden);
-        window.openView('shipper');
-        const newTab = document.querySelector('#shipper .tabs .tab[data-target="shipper-orders"]'); if(newTab){ newTab.click(); }
-        assert('التبديل إلى تبويب "طلباتي"', document.getElementById('shipper-orders').hidden===false);
-        const preCount = S.orders.length;
-        S.orders.unshift({id: Date.now()+1, pickup:'اختبار أ', dropoff:'اختبار ب', size:'small', price:50, status:'new', driverId:null}); persist();
-        assert('إضافة طلب اختباري', S.orders.length===preCount+1);
-        const newId = S.orders[0].id; driverAccept(newId); assert('قبول السائق للطلب', S.orders[0].status==='in_progress');
-        S.orders[0].status='completed'; persist(); assert('إكمال الطلب', S.orders[0].status==='completed');
-        updateUI();
-        // إدارة: فلترة وترتيب
-        window.__svcQuery = 'نقل'; const before = filteredServices().length; assert('فلترة الخدمات بالكلمة تعمل', before>0);
-        window.__svcCat = 'معدات'; const onlyEquip = filteredServices().every(s=>s.cat==='معدات'); assert('تصفية حسب الفئة تعمل', onlyEquip);
-        // محاكاة إعادة ترتيب
-        const len=S.services.length; const first=S.services[0]; S.services.splice(0,1); S.services.splice(2,0,first); persist(); assert('إعادة ترتيب الخدمات بالذاكرة', S.services.length===len && S.services[2]===first);
-      }catch(e){ console.error('Test error:', e); }
-      const host = document.getElementById('testResults');
-      if(host){ host.innerHTML = '<div class="badge">نتائج</div>' + '<pre style="white-space:pre-wrap">'+results.map(r=>`${r.اختبار}: ${r.النتيجة}`).join('\n')+'</pre>'; }
-      console.table(results);
-      window.openView('landing');
-    }
-
-    // ===== Leaflet integration =====
-    let map, pickupMarker, dropoffMarker, routeLine;
-    let lastRouteKm = null, lastRouteETAmin = null; // مخرجات OSRM عند توفرها 
-    window.mapState = {pickup:null, dropoff:null};
-
-    function initLeaflet(){
-      if(typeof L === 'undefined'){ console.warn('Leaflet not loaded'); return; }
-      if(map){ return; }
-      // load stored view if any
-      const stored = JSON.parse(localStorage.getItem('mapView')||'null');
-      const center = stored?.center || [24.7136,46.6753];
-      const zoom = stored?.zoom || 11;
-      map = L.map('leafletMap', { zoomControl: true, attributionControl: true }).setView(center, zoom);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(map);
-      // persist view on move
-      map.on('moveend', ()=>{ const c = map.getCenter(); localStorage.setItem('mapView', JSON.stringify({center:[c.lat,c.lng], zoom: map.getZoom()})); });
-
-      // custom divIcon as truck badge
-      const truckSVG = `<?xml version="1.0"?><svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 128 64'><defs><linearGradient id='t' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#23c7c2'/><stop offset='1' stop-color='#7ce7e2'/></linearGradient></defs><rect x='0' y='40' width='128' height='8' rx='4' fill='#cffafe'/><path d='M6 40h82c3 0 5-2 5-5v-7c0-1.2-.9-2.8-1.9-3.7l-10.5-9.6A6 6 0 0 0 76 12H58a4 4 0 0 0-4 4v6H24a10 10 0 0 0-10 10v8z' fill='url(#t)'/><circle cx='32' cy='47' r='8' fill='#0ea5a4'/><circle cx='32' cy='47' r='3.8' fill='#ecfeff'/><circle cx='96' cy='47' r='8' fill='#0ea5a4'/><circle cx='96' cy='47' r='3.8' fill='#ecfeff'/></svg>`;
-      window.__truckIcon = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
-      window.__dropIcon  = L.divIcon({ className:'', html:`<div class="glass" style="padding:6px;border-radius:12px;transform:scale(.95)">${truckSVG}</div>` , iconSize:[36,36], iconAnchor:[18,18] });
-
-      map.on('click', (e)=>{
-        if(!window.mapPickMode) return;
-        const {lat,lng} = e.latlng;
-        if(window.mapPickMode==='pickup') setPickup(lat,lng, window.__truckIcon);
-        else if(window.mapPickMode==='dropoff') setDropoff(lat,lng, window.__dropIcon);
-        exitMapPickMode();
-        drawRouteIfReady();
-        if(!(window.mapState.pickup && window.mapState.dropoff)){
-          const p = window.mapState.pickup || window.mapState.dropoff; if(p && map){ map.setView([p.lat,p.lng], Math.max(14, map.getZoom())); }
-        }
-      });
-
-      // bind pick buttons now that DOM exists
-      const pp = document.getElementById('pickPickup');
-      const pd = document.getElementById('pickDropoff');
-      if(pp) pp.addEventListener('click', ()=>enterMapPickMode('pickup'));
-      if(pd) pd.addEventListener('click', ()=>enterMapPickMode('dropoff'));
-    }
-
-    function enterMapPickMode(which){ window.mapPickMode = which; document.getElementById(which==='pickup'?'pickPickup':'pickDropoff').classList.add('active'); }
-    function exitMapPickMode(){ ['pickPickup','pickDropoff'].forEach(id=>document.getElementById(id)?.classList.remove('active')); window.mapPickMode = null; }
-
-    function setPickup(lat,lng, icon){
-      window.mapState.pickup = {lat,lng}; if(!map) return;
-      if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); }
-      else{ pickupMarker = L.marker([lat,lng], {icon: icon||window.__truckIcon, draggable:true}).addTo(map);
-            pickupMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.pickup={lat:p.lat,lng:p.lng}; reverseGeocode(p.lat,p.lng,'pickup','pickupHint'); drawRouteIfReady(); }); }
-      document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-      reverseGeocode(lat,lng,'pickup','pickupHint');
-      if(!(window.mapState.dropoff)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
-    }{
-      window.mapState.pickup = {lat,lng}; if(!map) return;
-      if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); }
-      else{ pickupMarker = L.marker([lat,lng], {icon: icon||window.__truckIcon, draggable:true}).addTo(map);
-            pickupMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.pickup={lat:p.lat,lng:p.lng}; document.getElementById('pickupHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
-      document.getElementById('pickupHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-      if(!(window.mapState.dropoff)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
-    }
-
-    function setDropoff(lat,lng, icon){
-      window.mapState.dropoff = {lat,lng}; if(!map) return;
-      if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); }
-      else{ dropoffMarker = L.marker([lat,lng], {icon: icon||window.__dropIcon, draggable:true}).addTo(map);
-            dropoffMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.dropoff={lat:p.lat,lng:p.lng}; reverseGeocode(p.lat,p.lng,'dropoff','dropoffHint'); drawRouteIfReady(); }); }
-      document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-      reverseGeocode(lat,lng,'dropoff','dropoffHint');
-      if(!(window.mapState.pickup)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
-    }{
-      window.mapState.dropoff = {lat,lng}; if(!map) return;
-      if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); }
-      else{ dropoffMarker = L.marker([lat,lng], {icon: icon||window.__dropIcon, draggable:true}).addTo(map);
-            dropoffMarker.on('dragend', (ev)=>{ const p=ev.target.getLatLng(); window.mapState.dropoff={lat:p.lat,lng:p.lng}; document.getElementById('dropoffHint').textContent = `تم التعديل (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`; drawRouteIfReady(); }); }
-      document.getElementById('dropoffHint').textContent = `تم التحديد (${lat.toFixed(5)}, ${lng.toFixed(5)})`;
-      if(!(window.mapState.pickup)){ map.setView([lat,lng], Math.max(14, map.getZoom())); }
-    }
-
-    async function drawRouteIfReady(){
-      const a = window.mapState.pickup, b = window.mapState.dropoff; if(!a||!b||!map) return;
-      try{
-        const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
-        const res = await fetch(url, {headers:{'Accept':'application/json'}});
-        const j = await res.json();
-        if(j && j.routes && j.routes[0]){
-          const r = j.routes[0];
-          lastRouteKm = r.distance/1000; lastRouteETAmin = r.duration/60;
-          const geo = L.geoJSON(r.geometry, {style:{weight:6, opacity:.95, color:'#23c7c2'}});
-          if(routeLine){ map.removeLayer(routeLine); }
-          routeLine = geo.addTo(map);
-          map.fitBounds(geo.getBounds(), { padding:[30,30] });
-          document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${Math.round(lastRouteKm)} كم — زمن ~ ${Math.max(1,Math.round(lastRouteETAmin))} دقيقة`;
-          return;
-        }
-      }catch(e){ console.warn('OSRM failed, fallback to straight line', e); }
-      // fallback إلى خط مستقيم
-      const latlngs = [ [a.lat,a.lng], [b.lat,b.lng] ];
-      if(routeLine){ routeLine.setLatLngs(latlngs); } else { routeLine = L.polyline(latlngs, {weight:6, opacity:.95, color:'#23c7c2'}).addTo(map); }
-      map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
-      lastRouteKm = kmBetween(); lastRouteETAmin = null;
-      document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${lastRouteKm} كم`;
-    }
-      else { routeLine = L.polyline(latlngs, {weight:6, opacity:.95, color:'#23c7c2'}).addTo(map); }
-      map.fitBounds(routeLine.getBounds(), { padding:[30,30] });
-      document.getElementById('estimateOut').textContent = `المسافة التقريبية: ~ ${kmBetween()} كم`;
-    }
-
-    function fitToMarkersOrRoute(){
-      const a = window.mapState?.pickup, b = window.mapState?.dropoff;
-      if(a && b && routeLine){ map.fitBounds(routeLine.getBounds(), {padding:[30,30]}); return; }
-      if(a){ map.setView([a.lat,a.lng], Math.max(14, map.getZoom())); return; }
-      if(b){ map.setView([b.lat,b.lng], Math.max(14, map.getZoom())); return; }
-      const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); }
-    }
-    function recenterMap(){ const stored = JSON.parse(localStorage.getItem('mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11); } else { map.setView([24.7136,46.6753], 11); } }
-      async function reverseGeocode(lat,lng, fieldId, hintId){
-      try{
-        const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar&zoom=18`;
-        const res = await fetch(url, {headers:{'Accept':'application/json'}});
-        const j = await res.json();
-        const txt = j && (j.display_name || j.name);
-        if(txt){ const fld = document.getElementById(fieldId); if(fld && (!fld.value||fld.value.length<5)) fld.value = txt; const hint = document.getElementById(hintId); if(hint){ hint.textContent = txt; } }
-      }catch(e){ /* صامت */ }
-    }
-
-    function toast(msg){ const t=document.getElementById('toast'); if(!t) return; t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2500); }
-      function useMyLocation(){
-      if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return; }
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        const {latitude:lat, longitude:lng} = pos.coords;
-        if(map){ map.setView([lat,lng], 14); }
-        setPickup(lat,lng);
-        reverseGeocode(lat,lng,'pickup','pickupHint');
-        drawRouteIfReady();
-      }, (err)=>{ alert('تعذّر الحصول على الموقع: '+ err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
-    }
-
-    // === اختبارات إضافية بسيطة ===
-    (function(){ try{
-      console.assert(typeof estimate==='function','estimate موجودة');
-      const p0=S.pricing.kmRate; S.pricing.kmRate=5; const t1=estimate(); S.pricing.kmRate=p0; console.assert(typeof t1==='number','estimate تُعيد رقم');
-    }catch(_){} })();
-      function useMyLocation(){
-      if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return; }
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        const {latitude:lat, longitude:lng} = pos.coords;
-        if(map){ map.setView([lat,lng], 14); }
-        setPickup(lat,lng); reverseGeocode(lat,lng,'pickup','pickupHint'); drawRouteIfReady();
-      }, (err)=>{ alert('تعذّر الحصول على الموقع: '+ err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
-    }
-    function useMyLocationDrop(){
-      if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return; }
-      navigator.geolocation.getCurrentPosition((pos)=>{
-        const {latitude:lat, longitude:lng} = pos.coords;
-        if(map){ map.setView([lat,lng], 14); }
-        setDropoff(lat,lng); reverseGeocode(lat,lng,'dropoff','dropoffHint'); drawRouteIfReady();
-      }, (err)=>{ alert('تعذّر الحصول على الموقع: '+ err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0});
-    }
-    function copyCoords(which){
-      const p = which==='pickup'? window.mapState.pickup : window.mapState.dropoff;
-      if(!p){ alert('لم يتم تحديد النقطة بعد'); return; }
-      const txt = `${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`;
-      navigator.clipboard?.writeText(txt).then(()=>toast('تم نسخ الإحداثيات')).catch(()=>alert(txt));
-    }
-  </script>
+      <div style="margin-top:10px"><button onclick="savePricing()">حفظ التسعير</button><button onclick="runTests()" style="margin-left:8px;background:#f59e0b">تشغيل الاختبارات</button></div>
+      <div style="margin-top:10px"><pre id="testOutput">نتائج الاختبارات تظهر هنا...</pre></div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+<div class="tabs">
+  <div class="tab active" data-target="landing" onclick="activateTab(event)">الرئيسية</div>
+  <div class="tab" data-target="shipper" onclick="activateTab(event)">عميل</div>
+  <div class="tab" data-target="driver" onclick="activateTab(event)">سائق</div>
+  <div class="tab" data-target="owner" onclick="activateTab(event)">مالك</div>
+  <div class="tab" data-target="admin" onclick="activateTab(event)">إدارة</div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script>
+if('serviceWorker' in navigator){ window.addEventListener('load', ()=>{ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }); }
+const CITY={riyadh:[24.7136,46.6753],jeddah:[21.4858,39.1925],hail:[27.5219,41.6907],dammam:[26.4207,50.0888]};
+function jumpTo(key){ if(map){ map.setView(CITY[key]||CITY.riyadh,12);} }
+window.S=JSON.parse(localStorage.getItem('WASILA_S'))||{services:[
+{id:'home_move',title:'نقل أثاث منزلي',cat:'home',enabled:true},
+{id:'appliances',title:'نقل أجهزة كهربائية',cat:'home',enabled:true},
+{id:'flatbed',title:'سطحة معدات',cat:'equipment',enabled:true},
+{id:'building',title:'مواد بناء وحفر',cat:'equipment',enabled:true},
+{id:'city_express',title:'داخل المدينة — سريع',cat:'log',enabled:true},
+{id:'intercity',title:'بين المدن',cat:'log',enabled:true}
+],pricing:{kmRate:2.2,freeKg:50,perKg:0.6,multipliers:{boxes:1,furniture:1.8,appliances:1.4,building:2}},orders:[],drivers:[],owners:[],mapView:null,pollingInterval:8};
+function persist(){ localStorage.setItem('WASILA_S', JSON.stringify(S)); }
+function openView(id){ document.querySelectorAll('.view').forEach(v=>v.style.display='none'); const el=document.getElementById(id); if(!el)return; el.style.display='block'; if(id==='shipper'){ setTimeout(()=>{ if(window.map) map.invalidateSize(); fitToMarkersOrRoute(); },100);} if(id==='admin'){ renderServices(); } renderOrders(); renderDriverOrders(); renderOwners(); document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.target===id)); }
+document.addEventListener('DOMContentLoaded',()=>{ populateServiceSelect(); document.getElementById('kmRate').value=S.pricing.kmRate; document.getElementById('freeKg').value=S.pricing.freeKg; document.getElementById('perKg').value=S.pricing.perKg; initMap(); openView('landing'); });
+function activateTab(e){ openView(e.currentTarget.dataset.target); }
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+function populateServiceSelect(){ const sel=document.getElementById('serviceType'); sel.innerHTML=''; S.services.filter(s=>s.enabled).forEach(s=>{ const o=document.createElement('option'); o.value=s.id; o.textContent=s.title; sel.appendChild(o); }); }
+function renderServices(){ const grid=document.getElementById('servicesGrid'); grid.innerHTML=''; const q=(document.getElementById('serviceSearch').value||'').toLowerCase(); const f=document.getElementById('serviceFilter').value; S.services.filter(s=>{ if(q && !s.title.toLowerCase().includes(q)) return false; if(f && s.cat!==f) return false; return true; }).forEach(s=>{ const d=document.createElement('div'); d.className='service-card'; d.innerHTML=`<div style="display:flex;gap:10px;align-items:center"><div style="width:44px;height:44px;border-radius:10px;background:linear-gradient(180deg,var(--brand),var(--brand-2));display:flex;align-items:center;justify-content:center;color:white;font-weight:700">${s.title.charAt(0)}</div><div><div style="font-weight:600">${s.title}</div><div class="muted small">${s.cat||'عام'}</div></div></div><div class="switch"><label class="small">${s.enabled?'مفعل ✅':'معطل'}</label><input type="checkbox" ${s.enabled?'checked':''} onchange="toggleService('${s.id}',this.checked)"/></div>`; grid.appendChild(d); }); }
+function toggleService(id,val){ const s=S.services.find(x=>x.id===id); if(s){ s.enabled=!!val; persist(); renderServices(); populateServiceSelect(); toast('تم تحديث حالة الخدمة'); } }
+document.addEventListener('input',(e)=>{ if(e.target && e.target.id==='serviceSearch') renderServices(); }); document.addEventListener('change',(e)=>{ if(e.target && e.target.id==='serviceFilter') renderServices(); });
+function savePricing(){ S.pricing.kmRate=parseFloat(document.getElementById('kmRate').value)||S.pricing.kmRate; S.pricing.freeKg=parseFloat(document.getElementById('freeKg').value)||S.pricing.freeKg; S.pricing.perKg=parseFloat(document.getElementById('perKg').value)||S.pricing.perKg; persist(); toast('تم حفظ التسعير'); }
+function generateId(prefix){ return prefix + '_' + Date.now().toString(36).slice(-6); }
+function submitOrder(){ const pickup=window.mapState?.pickup, dropoff=window.mapState?.dropoff; if(!pickup||!dropoff){ alert('الرجاء تحديد الاستلام والتسليم من الخريطة'); return; } const order={id:generateId('o'),service:document.getElementById('serviceType').value,cargoType:document.getElementById('cargoType').value,weight:parseFloat(document.getElementById('weight').value)||0,pickup,dropoff,status:'pending',created:Date.now()}; S.orders.unshift(order); persist(); renderOrders(); toast('تم إنشاء الطلب'); }
+function renderOrders(){ const out=document.getElementById('ordersList'); if(!out)return; out.innerHTML=''; S.orders.forEach(o=>{ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><div><strong>${getServiceTitle(o.service)}</strong><div class="muted small">#${o.id} — ${statusLabel(o.status)}</div></div><div style="text-align:right"><div class="muted small">من: ${short(o.pickup)}</div><div class="muted small">إلى: ${short(o.dropoff)}</div></div></div><div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end">${o.status==='pending'?`<button onclick="assignDriver('${o.id}')">أسند لسائق تجريبي</button>`:''}${o.status==='in_progress'?`<button onclick="completeOrder('${o.id}')" style="background:#10b981">اكتمال</button><button onclick="cancelOrder('${o.id}')" style="background:#ef4444">إلغاء</button>`:''}</div>`; out.appendChild(el); }); }
+function statusLabel(s){ return s==='pending'?'بانتظار القبول':(s==='in_progress'?'جار التنفيذ':(s==='done'?'مكتمل':'ملغي')); }
+function getServiceTitle(id){ const it=S.services.find(x=>x.id===id); return it?it.title:id; }
+function renderDriverOrders(){ const out=document.getElementById('driverOrders'); if(!out)return; out.innerHTML=''; S.orders.filter(o=>o.status==='pending').forEach(o=>{ const el=document.createElement('div'); el.className='card'; el.innerHTML=`<div style="display:flex;justify-content:space-between"><div><strong>${getServiceTitle(o.service)}</strong><div class="muted small">#${o.id}</div></div><div style="text-align:right"><div class="muted small">من: ${short(o.pickup)}</div><div class="muted small">إلى: ${short(o.dropoff)}</div></div></div><div style="margin-top:8px;display:flex;gap:8px;justify-content:flex-end"><button onclick="acceptOrder('${o.id}')">قبول</button></div>`; out.appendChild(el); }); }
+function assignDriver(id){ const o=S.orders.find(x=>x.id===id); if(!o)return; o.status='in_progress'; persist(); renderOrders(); renderDriverOrders(); toast('تم اسناد الطلب (تجريبي)'); }
+function acceptOrder(id){ const o=S.orders.find(x=>x.id===id); if(!o)return; o.status='in_progress'; persist(); renderOrders(); renderDriverOrders(); toast('تم قبول الطلب'); }
+function completeOrder(id){ const o=S.orders.find(x=>x.id===id); if(o){ o.status='done'; persist(); renderOrders(); toast('اكتمل الطلب'); } }
+function cancelOrder(id){ const o=S.orders.find(x=>x.id===id); if(o){ o.status='cancelled'; persist(); renderOrders(); toast('تم إلغاء الطلب'); } }
+function addOwner(){ const name=(document.getElementById('ownerName').value||'').trim(); const vehicles=parseInt(document.getElementById('ownerVehicles').value||'0',10)||0; if(!name){ alert('أدخل اسم المالك'); return; } S.owners.push({name,vehicles}); persist(); document.getElementById('ownerName').value=''; renderOwners(); }
+function renderOwners(){ const out=document.getElementById('ownersList'); if(!out)return; out.innerHTML=''; if(S.owners.length===0){ out.innerHTML='<div class="muted small">لا يوجد ملاك بعد</div>'; return; } S.owners.forEach(o=>{ const d=document.createElement('div'); d.className='card'; d.innerHTML=`<strong>${o.name}</strong><div class="muted small">${o.vehicles||0} مركبات</div>`; out.appendChild(d); }); }
+let map,pickupMarker,dropoffMarker,routeLine; window.mapState={pickup:null,dropoff:null};
+function initMap(){ map=L.map('map',{zoomControl:false}).setView(CITY.riyadh,11); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map); map.on('click',(e)=>{ if(!window.mapState.pickup){ setPickup(e.latlng.lat,e.latlng.lng); reverseGeocode(e.latlng.lat,e.latlng.lng,'pickup','pickupHint'); } else if(!window.mapState.dropoff){ setDropoff(e.latlng.lat,e.latlng.lng); reverseGeocode(e.latlng.lat,e.latlng.lng,'dropoff','dropoffHint'); } else { setPickup(e.latlng.lat,e.latlng.lng); reverseGeocode(e.latlng.lat,e.latlng.lng,'pickup','pickupHint'); setDropoff(null,null);} drawRouteIfReady(); }); const stored=JSON.parse(localStorage.getItem('WASILA_mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11);} map.on('moveend',()=>{ localStorage.setItem('WASILA_mapView', JSON.stringify({center:map.getCenter(), zoom:map.getZoom()}));}); L.control.zoom({position:'topright'}).addTo(map); }
+function setPickup(lat,lng){ window.mapState.pickup={lat,lng}; if(pickupMarker){ pickupMarker.setLatLng([lat,lng]); } else { pickupMarker=L.marker([lat,lng],{title:'استلام'}).addTo(map);} document.getElementById('pickup').value=`${lat.toFixed(6)}, ${lng.toFixed(6)}`; fitToMarkersOrRoute(); }
+function setDropoff(lat,lng){ if(!lat){ window.mapState.dropoff=null; if(dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker=null;} return;} window.mapState.dropoff={lat,lng}; if(dropoffMarker){ dropoffMarker.setLatLng([lat,lng]); } else { dropoffMarker=L.marker([lat,lng],{title:'تسليم'}).addTo(map);} document.getElementById('dropoff').value=`${lat.toFixed(6)}, ${lng.toFixed(6)}`; fitToMarkersOrRoute(); }
+function copyCoords(which){ const p=which==='pickup'?window.mapState.pickup:window.mapState.dropoff; if(!p){ alert('لم يتم تحديد النقطة بعد'); return;} const txt=`${p.lat.toFixed(6)}, ${p.lng.toFixed(6)}`; navigator.clipboard?.writeText(txt).then(()=>toast('تم نسخ الإحداثيات')).catch(()=>alert(txt)); }
+async function reverseGeocode(lat,lng,fieldId,hintId){ try{ const url=`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&accept-language=ar&zoom=18`; const res=await fetch(url); const j=await res.json(); const txt=j&&(j.display_name||j.name); if(txt){ const fld=document.getElementById(fieldId); if(fld&&(!fld.value||fld.value.length<5)) fld.value=txt; const hint=document.getElementById(hintId); if(hint) hint.textContent=txt; } }catch(e){} }
+function fitToMarkersOrRoute(){ const a=window.mapState.pickup,b=window.mapState.dropoff; if(a&&b&&routeLine){ map.fitBounds(routeLine.getBounds(),{padding:[30,30]}); return;} if(a&&b){ map.fitBounds([[a.lat,a.lng],[b.lat,b.lng]],{padding:[30,30]}); return;} if(a){ map.setView([a.lat,a.lng],Math.max(13,map.getZoom())); return;} const stored=JSON.parse(localStorage.getItem('WASILA_mapView')||'null'); if(stored?.center){ map.setView(stored.center, stored.zoom||11);} }
+async function drawRouteIfReady(){ if(routeLine){ try{ map.removeLayer(routeLine);}catch(e){} routeLine=null; } const a=window.mapState.pickup,b=window.mapState.dropoff; if(!a||!b) return; try{ const url=`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`; const r=await fetch(url); const j=await r.json(); if(j&&j.routes&&j.routes[0]){ const coords=j.routes[0].geometry.coordinates.map(c=>[c[1],c[0]]); routeLine=L.polyline(coords,{weight:5,opacity:0.85,color:varColor()}).addTo(map); document.getElementById('estimateOut').textContent=`المسافة: ${(j.routes[0].distance/1000).toFixed(2)} كم — زمن تقريبي: ${Math.round(j.routes[0].duration/60)} د`; persistRouteInfo(j.routes[0].distance/1000, j.routes[0].duration/60); fitToMarkersOrRoute(); return; } }catch(e){} const coords=[[a.lat,a.lng],[b.lat,b.lng]]; routeLine=L.polyline(coords,{weight:4,opacity:0.6,color:varColor()}).addTo(map); const km=kmBetween().toFixed(2); document.getElementById('estimateOut').textContent=`المسافة التقريبية: ~ ${km} كم (خط مستقيم)`; persistRouteInfo(parseFloat(km), null); fitToMarkersOrRoute(); }
+function varColor(){ return getComputedStyle(document.documentElement).getPropertyValue('--brand')||'#00C2C2'; }
+function persistRouteInfo(km,mins){ window._lastRoute={km,mins}; }
+function kmBetween(){ const a=window.mapState.pickup,b=window.mapState.dropoff; if(!a||!b) return 0; const toRad=x=>x*Math.PI/180,R=6371; const dLat=toRad(b.lat-a.lat), dLon=toRad(b.lng-a.lng); const lat1=toRad(a.lat), lat2=toRad(b.lat); const hav=Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2; const c=2*Math.atan2(Math.sqrt(hav), Math.sqrt(1-hav)); return R*c; }
+function estimate(){ const route=window._lastRoute; const kms=route?.km||kmBetween(); const cargo=document.getElementById('cargoType').value||'boxes'; const weight=parseFloat(document.getElementById('weight').value)||0; const base=kms*S.pricing.kmRate; const mult=S.pricing.multipliers[cargo]||1; const extraKg=Math.max(0, weight-S.pricing.freeKg); const extraCost=extraKg*S.pricing.perKg; const total=(base*mult)+extraCost; document.getElementById('estimateOut').textContent=`تقديري: ${total.toFixed(2)} ر.س — مسافة: ${kms.toFixed(2)} كم`; return total; }
+function useMyLocation(){ if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return;} navigator.geolocation.getCurrentPosition((pos)=>{ const {latitude:lat, longitude:lng}=pos.coords; if(map) map.setView([lat,lng],14); setPickup(lat,lng); reverseGeocode(lat,lng,'pickup','pickupHint'); drawRouteIfReady(); }, (err)=>{ alert('تعذّر الحصول على الموقع: '+err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0}); }
+function useMyLocationDrop(){ if(!navigator.geolocation){ alert('المتصفح لا يدعم تحديد الموقع'); return;} navigator.geolocation.getCurrentPosition((pos)=>{ const {latitude:lat, longitude:lng}=pos.coords; if(map) map.setView([lat,lng],14); setDropoff(lat,lng); reverseGeocode(lat,lng,'dropoff','dropoffHint'); drawRouteIfReady(); }, (err)=>{ alert('تعذّر الحصول على الموقع: '+err.message); }, {enableHighAccuracy:true, timeout:8000, maximumAge:0}); }
+function runTests(){ const out=document.getElementById('testOutput'); out.textContent='تشغيل الاختبارات...'; let results=[]; try{ console.assert(typeof estimate==='function','estimate موجودة'); results.push('✅ دالة estimate معرفة'); const prev=S.pricing.kmRate; S.pricing.kmRate=5; const val=estimate(); S.pricing.kmRate=prev; results.push('✅ estimate تُعيد قيمة رقمية'); results.push(map?'✅ الخريطة مُحملة':'❌ الخريطة غير موجودة'); results.push(S.services.length>0?'✅ توجد خدمات مُحمّلة':'❌ لا خدمات'); out.textContent=results.join('\n'); }catch(e){ out.textContent='فشل الاختبارات: '+e.message; } }
+(function(){ try{ window.useMyLocation=useMyLocation; window.useMyLocationDrop=useMyLocationDrop; window.copyCoords=copyCoords; window.estimate=estimate; window.submitOrder=submitOrder; window.runTests=runTests; window.openView=openView; window.activateTab=activateTab; window.assignDriver=assignDriver; window.acceptOrder=acceptOrder; window.completeOrder=completeOrder; window.cancelOrder=cancelOrder; window.savePricing=savePricing; window.addOwner=addOwner; persist(); }catch(_){}})();
+</script>
 </body>
 </html>
